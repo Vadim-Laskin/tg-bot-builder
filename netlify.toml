@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Telegram webhooks and API calls will live in netlify/functions/*
+# once the backend phase starts (see README.md -> "Следующие шаги").
