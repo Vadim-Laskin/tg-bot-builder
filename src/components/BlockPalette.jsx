@@ -1,6 +1,6 @@
 import { BLOCK_CATEGORIES, blocksByCategory } from '../engine/blockDefs.js';
 
-export default function BlockPalette() {
+export default function BlockPalette({ open, onClose, onAddBlock }) {
   const grouped = blocksByCategory();
 
   const onDragStart = (e, blockType) => {
@@ -9,7 +9,13 @@ export default function BlockPalette() {
   };
 
   return (
-    <aside className="palette">
+    <aside className={`palette${open ? ' is-open' : ''}`}>
+      <div className="palette__mobile-header">
+        <span>Блоки</span>
+        <button className="btn btn--sm" onClick={onClose}>
+          Готово
+        </button>
+      </div>
       {Object.entries(BLOCK_CATEGORIES).map(([catKey, catLabel]) => (
         <div key={catKey}>
           <div className="palette__category-title">{catLabel}</div>
@@ -19,7 +25,8 @@ export default function BlockPalette() {
               className="palette__block"
               draggable
               onDragStart={(e) => onDragStart(e, block.type)}
-              title="Перетащите на холст"
+              onClick={() => onAddBlock?.(block.type)}
+              title="Перетащите на холст или нажмите, чтобы добавить"
             >
               <span className="palette__block-dot" style={{ background: block.color }} />
               <span className="palette__block-text">

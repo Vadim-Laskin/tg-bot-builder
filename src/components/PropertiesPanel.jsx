@@ -1,6 +1,6 @@
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 
-export default function PropertiesPanel({ node, otherFlows, onChange, onDelete }) {
+export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, onCloseMobile }) {
   if (!node) {
     return (
       <aside className="properties">
@@ -18,7 +18,13 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete }
   const set = (patch) => onChange({ ...data, ...patch });
 
   return (
-    <aside className="properties">
+    <aside className="properties is-open">
+      <div className="properties__mobile-header">
+        <span>Свойства блока</span>
+        <button className="btn btn--sm" onClick={onCloseMobile}>
+          Готово
+        </button>
+      </div>
       <div className="properties__title">
         <span className="node__dot" style={{ background: def.color }} />
         {def.label}

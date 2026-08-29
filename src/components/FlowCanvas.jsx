@@ -34,6 +34,7 @@ function InnerCanvas({ bot, flow }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(flow.edges);
   const [selectedId, setSelectedId] = useState(null);
   const [showTest, setShowTest] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const wrapRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
 
@@ -73,7 +74,27 @@ function InnerCanvas({ bot, flow }) {
     [screenToFlowPosition, setNodes]
   );
 
+  // used both by drag-and-drop (desktop) and tap-to-add (touch/mobile, where
+  // native HTML5 drag events generally don't fire)
+  const addBlockAtCenter = useCallback(
+    (blockType) => {
+      const def = BLOCK_DEFS[blockType];
+      if (!def) return;
+      const bounds = wrapRef.current?.getBoundingClientRect();
+      const centerScreen = bounds
+        ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }
+        : { x: 300, y: 300 };
+      const position = screenToFlowPosition(centerScreen);
+      const newNode = { id: nanoid(8), type: blockType, position, data: structuredClone(def.defaultData) };
+      setNodes((nds) => nds.concat(newNode));
+      setSelectedId(newNode.id);
+      setPaletteOpen(false);
+    },
+    [screenToFlowPosition, setNodes]
+  );
+
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
+  const drawerOpen = paletteOpen || Boolean(selectedNode);
 
   const otherFlows = useMemo(
     () => bot.flows.filter((f) => f.id !== flow.id).map((f) => ({ id: f.id, name: f.name })),
@@ -82,9 +103,20 @@ function InnerCanvas({ bot, flow }) {
 
   return (
     <div className="editor-layout">
-      <BlockPalette />
+      <div className={`editor-backdrop${drawerOpen ? ' is-visible' : ''}`}
+        onClick={() => {
+          setPaletteOpen(false);
+          setSelectedId(null);
+        }}
+      />
+
+      <BlockPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onAddBlock={addBlockAtCenter} />
 
       <div className="canvas-wrap" ref={wrapRef}>
+        <button className="btn btn--primary palette-fab" onClick={() => setPaletteOpen(true)}>
+          + Блок
+        </button>
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -121,6 +153,7 @@ function InnerCanvas({ bot, flow }) {
           setEdges((eds) => eds.filter((e) => e.source !== selectedId && e.target !== selectedId));
           setSelectedId(null);
         }}
+        onCloseMobile={() => setSelectedId(null)}
       />
     </div>
   );
