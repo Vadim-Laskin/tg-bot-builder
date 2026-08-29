@@ -1,0 +1,105 @@
+/* Flowbase design tokens.
+   Signature idea: the canvas reads like a circuit board — nodes are
+   components, edges are traces with a moving current. Category colors
+   act as "wire colors" so a flow's shape is readable at a glance. */
+
+:root {
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.28);
+
+  /* wire colors — shared across themes so a flow looks the same shape
+     in light or dark mode */
+  --wire-note: #7c828d;
+  --wire-message: #3e8ede;
+  --wire-ai: #29c7ac;
+  --wire-action: #e8a33d;
+  --wire-condition: #6c5ce7;
+  --wire-event: #e1526b;
+  --wire-chain: #38bdf8;
+  --wire-variable: #9ad14b;
+  --wire-tag: #f2994a;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0f1115;
+  --bg-canvas: #0b0d11;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --surface-3: #262b35;
+  --border: #2a2f3a;
+  --border-strong: #3a4150;
+  --text: #e8eaed;
+  --text-dim: #9aa0ac;
+  --text-faint: #5b606c;
+  --accent: #6c5ce7;
+  --accent-soft: rgba(108, 92, 231, 0.16);
+  --danger: #e1526b;
+  --danger-soft: rgba(225, 82, 107, 0.14);
+  --grid-dot: rgba(255, 255, 255, 0.06);
+  --canvas-overlay: rgba(15, 17, 21, 0.6);
+}
+
+:root[data-theme='light'] {
+  --bg: #f5f6fa;
+  --bg-canvas: #eef0f6;
+  --surface: #ffffff;
+  --surface-2: #f2f3f8;
+  --surface-3: #e8eaf2;
+  --border: #e0e2ea;
+  --border-strong: #cdd0db;
+  --text: #1b1d22;
+  --text-dim: #666b78;
+  --text-faint: #9498a3;
+  --accent: #6c5ce7;
+  --accent-soft: rgba(108, 92, 231, 0.1);
+  --danger: #d63f5c;
+  --danger-soft: rgba(214, 63, 92, 0.08);
+  --grid-dot: rgba(20, 22, 30, 0.09);
+  --canvas-overlay: rgba(238, 240, 246, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
