@@ -6,10 +6,11 @@ export default function BotList({ onOpenBot }) {
   const deleteBot = useBotStore((s) => s.deleteBot);
   const setActiveBot = useBotStore((s) => s.setActiveBot);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const name = prompt('Название бота:', 'Мой бот');
     if (!name) return;
-    const id = createBot(name);
+    const id = await createBot(name);
+    if (!id) return;
     setActiveBot(id);
     onOpenBot();
   };

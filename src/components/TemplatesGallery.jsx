@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTemplateStore } from '../store/useTemplateStore.js';
 import { useBotStore } from '../store/useBotStore.js';
+import { useAuthStore } from '../store/useAuthStore.js';
 import Modal from './Modal.jsx';
 
 export default function TemplatesGallery({ onOpenBot }) {
   const templates = useTemplateStore((s) => s.templates);
-  const isAdmin = useTemplateStore((s) => s.isAdmin);
   const removeTemplate = useTemplateStore((s) => s.removeTemplate);
   const addTemplate = useTemplateStore((s) => s.addTemplate);
+  const isAdmin = useAuthStore((s) => Boolean(s.profile?.is_admin));
 
   const bots = useBotStore((s) => s.bots);
   const createBot = useBotStore((s) => s.createBot);
@@ -16,8 +17,9 @@ export default function TemplatesGallery({ onOpenBot }) {
 
   const [addOpen, setAddOpen] = useState(false);
 
-  const useTemplate = (tpl) => {
-    const botId = createBot(`${tpl.name} (из шаблона)`);
+  const useTemplate = async (tpl) => {
+    const botId = await createBot(`${tpl.name} (из шаблона)`);
+    if (!botId) return;
     const bot = useBotStore.getState().bots.find((b) => b.id === botId);
     const mainFlow = bot.flows[0];
     updateFlowGraph(botId, mainFlow.id, {
@@ -60,6 +62,11 @@ export default function TemplatesGallery({ onOpenBot }) {
             </div>
           </div>
         ))}
+        {templates.length === 0 && (
+          <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>
+            Шаблонов пока нет{isAdmin ? ' — добавьте первый.' : '.'}
+          </p>
+        )}
       </div>
 
       {addOpen && (
@@ -76,11 +83,14 @@ function AddTemplateForm({ bots, onAdd, onClose }) {
   const [flowId, setFlowId] = useState(allFlows[0]?.id ?? '');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     const flow = allFlows.find((f) => f.id === flowId);
     if (!flow || !name.trim()) return;
-    onAdd({ name, description, nodes: structuredClone(flow.nodes), edges: structuredClone(flow.edges) });
+    setBusy(true);
+    await onAdd({ name, description, nodes: structuredClone(flow.nodes), edges: structuredClone(flow.edges) });
+    setBusy(false);
     onClose();
   };
 
@@ -112,8 +122,8 @@ function AddTemplateForm({ bots, onAdd, onClose }) {
         <button className="btn btn--sm" onClick={onClose}>
           Отмена
         </button>
-        <button className="btn btn--primary btn--sm" onClick={submit}>
-          Опубликовать
+        <button className="btn btn--primary btn--sm" onClick={submit} disabled={busy}>
+          {busy ? 'Публикую…' : 'Опубликовать'}
         </button>
       </div>
     </div>
