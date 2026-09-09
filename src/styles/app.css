@@ -753,6 +753,76 @@
   }
 }
 
+/* ---------- auth ---------- */
+
+.auth-screen {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 20px;
+}
+
+.auth-card {
+  width: 320px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow-2);
+}
+
+.auth-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 12.5px;
+  margin: -4px 0 10px;
+}
+
+.auth-info {
+  color: var(--wire-ai);
+  font-size: 12.5px;
+  margin: -4px 0 10px;
+}
+
+.topbar__account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__email {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  display: none;
+}
+
+.topbar__admin-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+@media (min-width: 720px) {
+  .topbar__email {
+    display: inline;
+  }
+}
+
 /* ---------- modal ---------- */
 
 .modal__backdrop {
