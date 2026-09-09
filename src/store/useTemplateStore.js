@@ -1,56 +1,60 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
+import { supabase } from '../lib/supabaseClient.js';
 
-// TODO(phase 2 — Supabase): table `templates(id, name, description, graph jsonb,
-// created_by, created_at)`. Writes should be gated server-side by an
-// `is_admin` flag on the user's profile row (Row Level Security policy),
-// not just hidden in the UI like the `isAdmin` flag below.
+// Table `templates` — see supabase/schema.sql. Row Level Security enforces
+// the admin-only write rule server-side (auth.uid() must have profiles.is_admin
+// = true), so `isAdmin` in the UI is just for hiding buttons, not the real gate.
 
-const STARTER_TEMPLATES = [
-  {
-    id: 'starter-welcome',
-    name: 'Приветствие + меню',
-    description: 'Команда /start отвечает текстом и двумя кнопками.',
-    nodes: [
-      { id: 'e1', type: 'event', position: { x: 0, y: 0 }, data: { triggerType: 'command', value: '/start' } },
-      {
-        id: 'm1',
-        type: 'message',
-        position: { x: 280, y: 0 },
-        data: {
-          text: 'Привет! Я бот компании. Чем помочь?',
-          buttons: [
-            { text: 'Каталог', action: 'next', value: '' },
-            { text: 'Поддержка', action: 'next', value: '' }
-          ]
-        }
-      }
-    ],
-    edges: [{ id: 'e1-m1', source: 'e1', target: 'm1' }]
+function mapTemplate(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? '',
+    nodes: row.graph?.nodes ?? [],
+    edges: row.graph?.edges ?? []
+  };
+}
+
+export const useTemplateStore = create((set, get) => ({
+  templates: [],
+  loading: false,
+
+  async fetchTemplates() {
+    set({ loading: true });
+    const { data, error } = await supabase.from('templates').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.error('fetchTemplates:', error.message);
+      set({ loading: false });
+      return;
+    }
+    set({ templates: data.map(mapTemplate), loading: false });
+  },
+
+  async addTemplate({ name, description, nodes, edges }) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('templates')
+      .insert({ name, description, graph: { nodes, edges }, created_by: user?.id })
+      .select()
+      .single();
+    if (error) {
+      console.error('addTemplate:', error.message);
+      return null;
+    }
+    const tpl = mapTemplate(data);
+    set((s) => ({ templates: [...s.templates, tpl] }));
+    return tpl.id;
+  },
+
+  async removeTemplate(id) {
+    set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
+    const { error } = await supabase.from('templates').delete().eq('id', id);
+    if (error) console.error('removeTemplate:', error.message);
+  },
+
+  getTemplate(id) {
+    return get().templates.find((t) => t.id === id) ?? null;
   }
-];
-
-export const useTemplateStore = create(
-  persist(
-    (set, get) => ({
-      templates: STARTER_TEMPLATES,
-      isAdmin: true, // MVP stub — replace with real auth role in phase 2
-
-      addTemplate({ name, description, nodes, edges }) {
-        const template = { id: nanoid(), name, description, nodes, edges };
-        set((s) => ({ templates: [...s.templates, template] }));
-        return template.id;
-      },
-
-      removeTemplate(id) {
-        set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
-      },
-
-      getTemplate(id) {
-        return get().templates.find((t) => t.id === id) ?? null;
-      }
-    }),
-    { name: 'flowbase-templates' }
-  )
-);
+}));
