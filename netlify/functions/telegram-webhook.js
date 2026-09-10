@@ -132,7 +132,7 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
           body: JSON.stringify({
-            model: model || 'llama-3.3-70b-versatile',
+            model: resolveGroqModel(model),
             messages: [
               { role: 'system', content: systemPrompt || '' },
               { role: 'user', content: userPrompt || '' }
@@ -183,4 +183,20 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
       console.log(msg);
     }
   };
+}
+
+// Groq retires models fairly often. Flows saved before a retirement would
+// otherwise silently break, so known-dead ids get remapped to a current
+// equivalent here — one place to update when Groq deprecates the next one.
+// See https://console.groq.com/docs/deprecations
+const GROQ_MODEL_REPLACEMENTS = {
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'mixtral-8x7b-32768': 'openai/gpt-oss-120b',
+  'qwen/qwen3-32b': 'openai/gpt-oss-120b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'qwen/qwen3.6-27b'
+};
+
+function resolveGroqModel(model) {
+  return GROQ_MODEL_REPLACEMENTS[model] || model || 'openai/gpt-oss-120b';
 }
