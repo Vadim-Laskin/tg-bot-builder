@@ -102,3 +102,25 @@ create policy "templates: admins can delete" on public.templates
 -- После первой регистрации выполните в SQL Editor, подставив свой email:
 --
 -- update public.profiles set is_admin = true where email = 'you@example.com';
+
+-- 5. Состояние диалога (переменные + теги на чат), пишет только вебхук
+--    (service role, в обход RLS). Владелец бота может читать — например,
+--    для будущей отладки в UI.
+create table if not exists public.chat_state (
+  bot_id uuid not null references public.bots(id) on delete cascade,
+  chat_id text not null,
+  variables jsonb not null default '{}'::jsonb,
+  tags jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now(),
+  primary key (bot_id, chat_id)
+);
+
+alter table public.chat_state enable row level security;
+
+drop policy if exists "chat_state: owner can read" on public.chat_state;
+create policy "chat_state: owner can read" on public.chat_state
+  for select using (
+    exists (select 1 from public.bots b where b.id = chat_state.bot_id and b.user_id = auth.uid())
+  );
+-- Намеренно нет insert/update/delete политик для anon/authenticated —
+-- писать может только service role (вебхук), который обходит RLS.
