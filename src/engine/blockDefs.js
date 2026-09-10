@@ -54,7 +54,7 @@ export const BLOCK_DEFS = {
     color: 'var(--wire-ai)',
     ports: { in: true, out: true },
     defaultData: {
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       systemPrompt: 'Ты — дружелюбный ассистент бренда.',
       userPrompt: '{{last_message}}',
       saveTo: '' // optional variable name to store the AI reply
