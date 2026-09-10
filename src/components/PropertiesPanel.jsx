@@ -72,9 +72,9 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
         <>
           <Field label="Модель Groq">
             <select className="select" value={data.model} onChange={(e) => set({ model: e.target.value })}>
-              <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
-              <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
-              <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+              <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (мощнее)</option>
+              <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (быстрее)</option>
+              <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b</option>
             </select>
           </Field>
           <Field label="Системный промпт">
