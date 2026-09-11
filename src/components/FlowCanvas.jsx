@@ -12,6 +12,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { nanoid } from 'nanoid';
 import BlockNode from './nodes/BlockNode.jsx';
+import DeletableEdge from './edges/DeletableEdge.jsx';
 import AddBlockModal from './AddBlockModal.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
 import TestPanel from './TestPanel.jsx';
@@ -19,6 +20,10 @@ import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import { useBotStore } from '../store/useBotStore.js';
 
 const nodeTypes = Object.fromEntries(Object.keys(BLOCK_DEFS).map((t) => [t, BlockNode]));
+// registering our component as the 'default' edge type means it applies to
+// every edge — both ones freshly drawn and ones loaded from storage that
+// have no `type` field of their own
+const edgeTypes = { default: DeletableEdge };
 
 export default function FlowCanvas({ bot, flow }) {
   return (
@@ -51,8 +56,20 @@ function InnerCanvas({ bot, flow }) {
     return () => clearTimeout(t);
   }, [nodes, edges, bot.id, flow.id, updateFlowGraph]);
 
+  // a block can only have one incoming line, and any single output point
+  // (the default handle, or one specific button's handle) can only have
+  // one outgoing line — drawing a new one replaces whatever was there
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
+    (params) => {
+      setEdges((eds) => {
+        const withoutConflicts = eds.filter(
+          (e) =>
+            !(e.source === params.source && (e.sourceHandle ?? null) === (params.sourceHandle ?? null)) &&
+            !(e.target === params.target && (e.targetHandle ?? null) === (params.targetHandle ?? null))
+        );
+        return addEdge({ ...params, animated: true }, withoutConflicts);
+      });
+    },
     [setEdges]
   );
 
@@ -94,6 +111,7 @@ function InnerCanvas({ bot, flow }) {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

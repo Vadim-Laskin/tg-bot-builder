@@ -28,7 +28,7 @@ export const BLOCK_DEFS = {
     color: 'var(--wire-event)',
     ports: { in: false, out: true },
     defaultData: {
-      triggerType: 'command', // command | text | callback | schedule
+      triggerType: 'command', // command | text | schedule
       value: '/start'
     }
   },

@@ -48,7 +48,6 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
             >
               <option value="command">Команда (/start)</option>
               <option value="text">Любой текст</option>
-              <option value="callback">Нажатие кнопки</option>
               <option value="schedule">По расписанию</option>
             </select>
           </Field>

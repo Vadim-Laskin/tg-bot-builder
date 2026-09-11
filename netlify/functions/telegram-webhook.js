@@ -52,12 +52,15 @@ export const handler = async (event) => {
   let trigger;
   if (callbackData) {
     // buttons made in the editor encode which block + which button they
-    // are, so a press resumes the flow from exactly that point rather than
-    // matching a separate Событие block
+    // are, so a press resumes the flow from exactly that point — there's
+    // no separate "Событие: кнопка" matching anymore
     const parsed = parseCallbackData(callbackData);
-    trigger = parsed
-      ? { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` }
-      : { type: 'callback', value: callbackData };
+    if (!parsed) {
+      console.error('webhook: unrecognized callback_data', callbackData);
+      await answerCallbackQuery(bot.telegram_token, update.callback_query.id);
+      return { statusCode: 200, body: 'unrecognized callback' };
+    }
+    trigger = { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` };
   } else if (text.startsWith('/')) {
     trigger = { type: 'command', value: text.split(' ')[0] };
   } else {
@@ -115,15 +118,19 @@ export const handler = async (event) => {
 
   // stop the button's loading spinner in the Telegram client
   if (update.callback_query) {
-    await fetch(`https://api.telegram.org/bot${bot.telegram_token}/answerCallbackQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ callback_query_id: update.callback_query.id })
-    }).catch(() => {});
+    await answerCallbackQuery(bot.telegram_token, update.callback_query.id);
   }
 
   return { statusCode: 200, body: 'ok' };
 };
+
+async function answerCallbackQuery(telegramToken, callbackQueryId) {
+  await fetch(`https://api.telegram.org/bot${telegramToken}/answerCallbackQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackQueryId })
+  }).catch(() => {});
+}
 
 function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
   const tg = (method, payload) =>

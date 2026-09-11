@@ -532,6 +532,34 @@
   stroke: var(--accent);
 }
 
+.edge-delete {
+  position: absolute;
+  pointer-events: all;
+}
+
+.edge-delete__btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+}
+
+.edge-delete__btn:hover {
+  opacity: 1;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 .react-flow__background {
   background: var(--bg-canvas);
 }
