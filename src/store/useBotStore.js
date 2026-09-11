@@ -140,6 +140,16 @@ export const useBotStore = create((set, get) => ({
     return flow.id;
   },
 
+  async renameFlow(botId, flowId, name) {
+    set((s) => ({
+      bots: s.bots.map((b) =>
+        b.id !== botId ? b : { ...b, flows: b.flows.map((f) => (f.id === flowId ? { ...f, name } : f)) }
+      )
+    }));
+    const { error } = await supabase.from('flows').update({ name }).eq('id', flowId);
+    if (error) console.error('renameFlow:', error.message);
+  },
+
   // Optimistic + fire-and-forget: the canvas already debounces calls to
   // this on every graph change, so we don't want to await a network
   // round-trip per keystroke/drag.
