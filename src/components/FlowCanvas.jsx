@@ -12,7 +12,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { nanoid } from 'nanoid';
 import BlockNode from './nodes/BlockNode.jsx';
-import BlockPalette from './BlockPalette.jsx';
+import AddBlockModal from './AddBlockModal.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
 import TestPanel from './TestPanel.jsx';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
@@ -34,11 +34,11 @@ function InnerCanvas({ bot, flow }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(flow.edges);
   const [selectedId, setSelectedId] = useState(null);
   const [showTest, setShowTest] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
   const wrapRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
 
-  // switching flows (main <-> chain) should reload the canvas contents
+  // switching flows (main <-> scenario) should reload the canvas contents
   useEffect(() => {
     setNodes(flow.nodes);
     setEdges(flow.edges);
@@ -56,27 +56,10 @@ function InnerCanvas({ bot, flow }) {
     [setEdges]
   );
 
-  const onDrop = useCallback(
-    (e) => {
-      e.preventDefault();
-      const blockType = e.dataTransfer.getData('application/flowbase-block');
-      const def = BLOCK_DEFS[blockType];
-      if (!def) return;
-      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const newNode = {
-        id: nanoid(8),
-        type: blockType,
-        position,
-        data: structuredClone(def.defaultData)
-      };
-      setNodes((nds) => nds.concat(newNode));
-    },
-    [screenToFlowPosition, setNodes]
-  );
-
-  // used both by drag-and-drop (desktop) and tap-to-add (touch/mobile, where
-  // native HTML5 drag events generally don't fire)
-  const addBlockAtCenter = useCallback(
+  // the sole way to add a block now — no more drag-from-sidebar, since that
+  // never worked on touch anyway. Places the new node roughly where the "+"
+  // button was tapped, or dead center as a fallback.
+  const addBlock = useCallback(
     (blockType) => {
       const def = BLOCK_DEFS[blockType];
       if (!def) return;
@@ -88,13 +71,12 @@ function InnerCanvas({ bot, flow }) {
       const newNode = { id: nanoid(8), type: blockType, position, data: structuredClone(def.defaultData) };
       setNodes((nds) => nds.concat(newNode));
       setSelectedId(newNode.id);
-      setPaletteOpen(false);
+      setAddBlockOpen(false);
     },
     [screenToFlowPosition, setNodes]
   );
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
-  const drawerOpen = paletteOpen || Boolean(selectedNode);
 
   const otherFlows = useMemo(
     () => bot.flows.filter((f) => f.id !== flow.id).map((f) => ({ id: f.id, name: f.name })),
@@ -103,18 +85,9 @@ function InnerCanvas({ bot, flow }) {
 
   return (
     <div className="editor-layout">
-      <div className={`editor-backdrop${drawerOpen ? ' is-visible' : ''}`}
-        onClick={() => {
-          setPaletteOpen(false);
-          setSelectedId(null);
-        }}
-      />
-
-      <BlockPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onAddBlock={addBlockAtCenter} />
-
       <div className="canvas-wrap" ref={wrapRef}>
-        <button className="btn btn--primary palette-fab" onClick={() => setPaletteOpen(true)}>
-          + Блок
+        <button className="btn btn--primary add-block-fab" onClick={() => setAddBlockOpen(true)} title="Добавить блок">
+          +
         </button>
 
         <ReactFlow
@@ -124,8 +97,6 @@ function InnerCanvas({ bot, flow }) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onDrop={onDrop}
-          onDragOver={(e) => e.preventDefault()}
           onNodeClick={(_, n) => setSelectedId(n.id)}
           onPaneClick={() => setSelectedId(null)}
           fitView
@@ -155,6 +126,8 @@ function InnerCanvas({ bot, flow }) {
         }}
         onCloseMobile={() => setSelectedId(null)}
       />
+
+      {addBlockOpen && <AddBlockModal onAdd={addBlock} onClose={() => setAddBlockOpen(false)} />}
     </div>
   );
 }

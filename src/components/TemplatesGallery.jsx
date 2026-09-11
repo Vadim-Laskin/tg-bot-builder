@@ -95,13 +95,13 @@ function AddTemplateForm({ bots, onAdd, onClose }) {
   };
 
   if (allFlows.length === 0) {
-    return <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>Сначала создайте хотя бы одного бота с флоу.</p>;
+    return <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>Сначала создайте хотя бы одного бота со сценарием.</p>;
   }
 
   return (
     <div>
       <div className="field">
-        <span className="field__label">Флоу-источник</span>
+        <span className="field__label">Сценарий-источник</span>
         <select className="select" value={flowId} onChange={(e) => setFlowId(e.target.value)}>
           {allFlows.map((f) => (
             <option key={f.id} value={f.id}>

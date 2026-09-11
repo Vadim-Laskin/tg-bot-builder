@@ -14,7 +14,7 @@ export default function TopBar({ view, onNavigate }) {
       </div>
       <div className="topbar__nav">
         <button
-          className={`topbar__nav-btn${view === 'bots' || view === 'editor' ? ' is-active' : ''}`}
+          className={`topbar__nav-btn${['bots', 'flows', 'editor'].includes(view) ? ' is-active' : ''}`}
           onClick={() => onNavigate('bots')}
         >
           Мои боты

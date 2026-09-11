@@ -37,7 +37,8 @@ export default function BotList({ onOpenBot }) {
           <div className="bot-card" key={bot.id} onClick={() => open(bot.id)}>
             <div className="bot-card__name">{bot.name}</div>
             <div className="bot-card__meta">
-              {bot.flows.length} флоу · {bot.telegramToken ? 'токен задан' : 'токен не задан'}
+              {bot.flows.length} {bot.flows.length === 1 ? 'сценарий' : 'сценариев'} ·{' '}
+              {bot.telegramToken ? 'токен задан' : 'токен не задан'}
             </div>
             <div className="bot-card__actions">
               <button

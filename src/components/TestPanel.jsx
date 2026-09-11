@@ -38,7 +38,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
   return (
     <div className="test-panel">
       <div className="test-panel__header">
-        <span>🧪 Тест флоу</span>
+        <span>🧪 Тест сценария</span>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn btn--sm" onClick={reset}>
             Сброс
