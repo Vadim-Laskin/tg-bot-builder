@@ -11,7 +11,8 @@
   align-items: center;
   gap: 24px;
   padding: 0 20px;
-  height: 56px;
+  padding-top: env(safe-area-inset-top);
+  height: calc(56px + env(safe-area-inset-top));
   flex: 0 0 auto;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -341,8 +342,8 @@
 
 .add-block-fab {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: calc(14px + env(safe-area-inset-top));
+  left: calc(14px + env(safe-area-inset-left));
   z-index: 15;
   width: 40px;
   height: 40px;
@@ -555,8 +556,8 @@
 
 .test-fab {
   position: absolute;
-  bottom: 18px;
-  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  right: calc(18px + env(safe-area-inset-right));
   z-index: 15;
 }
 
@@ -688,6 +689,7 @@
 
   .page {
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   .page__header {
@@ -719,6 +721,7 @@
     transform: translateX(100%);
     transition: transform 0.2s ease;
     padding-top: 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   .properties.is-open {
@@ -730,6 +733,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px;
+    padding-top: calc(14px + env(safe-area-inset-top));
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     position: sticky;
@@ -759,6 +763,10 @@
     border-left: none;
     border-right: none;
     border-bottom: none;
+  }
+
+  .test-panel__footer {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 
   .node {
