@@ -56,18 +56,17 @@ function InnerCanvas({ bot, flow }) {
     return () => clearTimeout(t);
   }, [nodes, edges, bot.id, flow.id, updateFlowGraph]);
 
-  // a block can only have one incoming line, and any single output point
-  // (the default handle, or one specific button's handle) can only have
-  // one outgoing line — drawing a new one replaces whatever was there
+  // any single output point (the default handle, or one specific button's
+  // handle) can only send to one block — but a block can receive from as
+  // many sources as you like. Drawing a new line from an already-used
+  // output replaces the old one instead of adding a second.
   const onConnect = useCallback(
     (params) => {
       setEdges((eds) => {
-        const withoutConflicts = eds.filter(
-          (e) =>
-            !(e.source === params.source && (e.sourceHandle ?? null) === (params.sourceHandle ?? null)) &&
-            !(e.target === params.target && (e.targetHandle ?? null) === (params.targetHandle ?? null))
+        const withoutConflict = eds.filter(
+          (e) => !(e.source === params.source && (e.sourceHandle ?? null) === (params.sourceHandle ?? null))
         );
-        return addEdge({ ...params, animated: true }, withoutConflicts);
+        return addEdge({ ...params, animated: true }, withoutConflict);
       });
     },
     [setEdges]
