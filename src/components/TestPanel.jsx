@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { runFlow } from '../engine/flowEngine.js';
 import { createMockApi } from '../engine/mockApi.js';
+import { parseCallbackData } from '../engine/buttonId.js';
 
 export default function TestPanel({ graph, allFlows, onClose }) {
   const [items, setItems] = useState([
@@ -11,23 +12,43 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
   const push = (item) => setItems((s) => [...s, item]);
 
-  const send = async (text) => {
-    if (!text.trim()) return;
-    push({ kind: 'user', text });
-    setInput('');
-
-    const api = createMockApi({
+  const makeApi = () =>
+    createMockApi({
       onMessage: ({ text: t, buttons }) => push({ kind: 'bot', text: t, buttons }),
       onLog: (t) => push({ kind: 'log', text: t }),
       flows: allFlows
     });
 
-    contextRef.current.lastMessage = text;
-    const trigger = text.startsWith('/')
-      ? { type: 'command', value: text }
-      : { type: 'text', value: text };
+  const send = async (text) => {
+    if (!text.trim()) return;
+    push({ kind: 'user', text });
+    setInput('');
 
-    await runFlow({ graph, trigger, context: contextRef.current, api });
+    contextRef.current.lastMessage = text;
+    const trigger = text.startsWith('/') ? { type: 'command', value: text } : { type: 'text', value: text };
+
+    await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
+  };
+
+  const pressButton = async (button) => {
+    if (button.kind === 'url') return; // just a link in real Telegram, nothing to simulate
+
+    push({ kind: 'user', text: `▸ ${button.text}` });
+    const parsed = parseCallbackData(button.callbackData);
+    if (!parsed) {
+      push({ kind: 'log', text: 'Эта кнопка ни к чему не подключена.' });
+      return;
+    }
+
+    // only works if the target block lives in the scenario currently open
+    // on the canvas — if it's in a different scenario (chain), open that
+    // one to test it, the real bot always resolves this correctly
+    await runFlow({
+      graph,
+      trigger: { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` },
+      context: contextRef.current,
+      api: makeApi()
+    });
   };
 
   const reset = () => {
@@ -65,19 +86,17 @@ export default function TestPanel({ graph, allFlows, onClose }) {
             >
               {it.text}
               {it.buttons?.length > 0 && (
-                <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
                   {it.buttons.map((b, bi) => (
-                    <span
+                    <button
                       key={bi}
-                      style={{
-                        fontSize: 11,
-                        border: '1px solid var(--border-strong)',
-                        borderRadius: 6,
-                        padding: '3px 7px'
-                      }}
+                      className="test-msg__button"
+                      onClick={() => pressButton(b)}
+                      title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
                     >
+                      {b.kind === 'url' ? '🔗 ' : ''}
                       {b.text}
-                    </span>
+                    </button>
                   ))}
                 </div>
               )}

@@ -6,6 +6,7 @@
 // `api` is injected by whoever runs the engine (see flowEngine.js header).
 
 import { interpolate } from './flowEngine.js';
+import { getButtonId, buildCallbackData } from './buttonId.js';
 
 const handlers = {
   note: async () => ({ next: 'default' }), // visual only, no-op at runtime
@@ -14,8 +15,19 @@ const handlers = {
 
   message: async (node, context, api) => {
     const text = interpolate(node.data.text, context);
-    await api.sendMessage(context.chatId, { text, buttons: node.data.buttons ?? [] });
-    return { next: 'default' };
+    const rawButtons = node.data.buttons ?? [];
+    const buttons = rawButtons.map((b, i) =>
+      b.kind === 'url'
+        ? { text: b.text, kind: 'url', url: b.url }
+        : { text: b.text, kind: 'callback', callbackData: buildCallbackData(node.id, getButtonId(b, i)) }
+    );
+    await api.sendMessage(context.chatId, { text, buttons });
+
+    // Callback buttons mean the flow should pause and wait for a press —
+    // it resumes later from that specific button's handle (see
+    // flowEngine.js's `resume` trigger), not by continuing straight on.
+    const hasCallbackButtons = buttons.some((b) => b.kind === 'callback');
+    return { next: hasCallbackButtons ? 'stop' : 'default' };
   },
 
   aiMessage: async (node, context, api) => {

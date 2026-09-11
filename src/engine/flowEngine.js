@@ -20,11 +20,34 @@ const MAX_STEPS = 300; // guards against accidental infinite loops via chains
 /**
  * @param {object} params
  * @param {{nodes: any[], edges: any[]}} params.graph
- * @param {{type: string, value?: string}} params.trigger
+ * @param {{type: string, value?: string} | {type: 'resume', nodeId: string, handle: string}} params.trigger
  * @param {{variables: object, tags: string[], chatId: any, botId?: string}} params.context
  * @param {object} params.api - injected IO: sendMessage, callGroq, httpRequest, resolveChain, log
  */
 export async function runFlow({ graph, trigger, context, api }) {
+  let steps = 0;
+
+  // "resume" isn't a fresh trigger matched against Событие blocks — it's a
+  // continuation from one specific button's handle on a Сообщение block
+  // that already ran and paused, waiting for that press. See
+  // nodeHandlers.js (message handler returns `next: 'stop'` when it has
+  // callback buttons) and buttonId.js for how callback_data encodes this.
+  if (trigger.type === 'resume') {
+    const nextEdges = graph.edges.filter(
+      (e) => e.source === trigger.nodeId && (e.sourceHandle ?? 'default') === trigger.handle
+    );
+    if (nextEdges.length === 0) {
+      api.log?.('Эта кнопка ни к чему не подключена.');
+      return context;
+    }
+    for (const edge of nextEdges) {
+      const nextNode = graph.nodes.find((n) => n.id === edge.target);
+      if (!nextNode) continue;
+      steps = await walk(nextNode, graph, context, api, steps, new Set());
+    }
+    return context;
+  }
+
   const entryNodes = graph.nodes.filter(
     (n) => n.type === 'event' && matchesTrigger(n.data, trigger)
   );
@@ -34,7 +57,6 @@ export async function runFlow({ graph, trigger, context, api }) {
     return context;
   }
 
-  let steps = 0;
   for (const entry of entryNodes) {
     steps = await walk(entry, graph, context, api, steps, new Set());
   }

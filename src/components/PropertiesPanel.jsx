@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 
 export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, onCloseMobile }) {
@@ -236,21 +237,45 @@ function ButtonsEditor({ buttons, onChange }) {
     onChange(next);
   };
   const remove = (i) => onChange(buttons.filter((_, idx) => idx !== i));
-  const add = () => onChange([...buttons, { text: 'Кнопка', action: 'next', value: '' }]);
+  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback' }]);
 
   return (
     <Field label="Кнопки">
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-2px 0 8px', lineHeight: 1.4 }}>
+        «Обычная» кнопка появляется на блоке со своей точкой — соедините её стрелкой с
+        нужным следующим блоком. «Ссылка» просто открывает URL и не ветвит сценарий.
+      </p>
       {buttons.map((b, i) => (
-        <div className="button-row" key={i}>
-          <input
-            className="input"
-            style={{ flex: 1 }}
-            value={b.text}
-            onChange={(e) => update(i, { text: e.target.value })}
-          />
-          <button className="btn btn--sm btn--danger" onClick={() => remove(i)}>
-            ✕
-          </button>
+        <div key={b.id ?? i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginBottom: 6 }}>
+          <div className="button-row">
+            <input
+              className="input"
+              style={{ flex: 1 }}
+              value={b.text}
+              onChange={(e) => update(i, { text: e.target.value })}
+              placeholder="Текст кнопки"
+            />
+            <select
+              className="select"
+              style={{ width: 110 }}
+              value={b.kind === 'url' ? 'url' : 'callback'}
+              onChange={(e) => update(i, { kind: e.target.value })}
+            >
+              <option value="callback">Обычная</option>
+              <option value="url">Ссылка</option>
+            </select>
+            <button className="btn btn--sm btn--danger" onClick={() => remove(i)}>
+              ✕
+            </button>
+          </div>
+          {b.kind === 'url' && (
+            <input
+              className="input"
+              value={b.url ?? ''}
+              onChange={(e) => update(i, { url: e.target.value })}
+              placeholder="https://…"
+            />
+          )}
         </div>
       ))}
       <button className="btn btn--sm" onClick={add}>

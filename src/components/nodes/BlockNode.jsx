@@ -1,5 +1,6 @@
 import { Handle, Position } from 'reactflow';
 import { BLOCK_DEFS } from '../../engine/blockDefs.js';
+import { getButtonId } from '../../engine/buttonId.js';
 
 function summarize(type, data) {
   switch (type) {
@@ -48,6 +49,8 @@ export default function BlockNode({ id, type, data, selected }) {
   const def = BLOCK_DEFS[type];
   if (!def) return null;
   const body = summarize(type, data);
+  const buttons = type === 'message' ? data.buttons ?? [] : [];
+  const callbackButtons = buttons.filter((b) => b.kind !== 'url');
 
   return (
     <div className={`node${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
@@ -60,18 +63,48 @@ export default function BlockNode({ id, type, data, selected }) {
 
       <div className={`node__body${body ? '' : ' node__body--empty'}`}>{body || 'Не настроено'}</div>
 
-      {def.ports.branches ? (
-        <>
-          <div className="node__branch-labels">
-            <span>да ↓</span>
-            <span>нет ↓</span>
-          </div>
-          <Handle type="source" position={Position.Right} id="true" style={{ top: '38%' }} />
-          <Handle type="source" position={Position.Right} id="false" style={{ top: '68%' }} />
-        </>
-      ) : (
-        def.ports.out && <Handle type="source" position={Position.Right} />
+      {type === 'message' && buttons.length > 0 && (
+        <div className="node__buttons">
+          {buttons.map((b, i) => (
+            <div className="node__button-row" key={getButtonId(b, i)}>
+              <span className="node__button-chip">
+                {b.kind === 'url' ? '🔗 ' : ''}
+                {b.text || 'Кнопка'}
+              </span>
+              {b.kind !== 'url' && (
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={`btn-${getButtonId(b, i)}`}
+                  className="node__button-handle"
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
+
+      {type === 'message' && buttons.length > 0 && callbackButtons.length === 0 && (
+        // every button is a plain URL button — nothing to branch on, so the
+        // node still needs a way to continue to whatever comes next
+        <Handle type="source" position={Position.Right} />
+      )}
+
+      {type !== 'message' &&
+        (def.ports.branches ? (
+          <>
+            <div className="node__branch-labels">
+              <span>да ↓</span>
+              <span>нет ↓</span>
+            </div>
+            <Handle type="source" position={Position.Right} id="true" style={{ top: '38%' }} />
+            <Handle type="source" position={Position.Right} id="false" style={{ top: '68%' }} />
+          </>
+        ) : (
+          def.ports.out && <Handle type="source" position={Position.Right} />
+        ))}
+
+      {type === 'message' && buttons.length === 0 && <Handle type="source" position={Position.Right} />}
     </div>
   );
 }

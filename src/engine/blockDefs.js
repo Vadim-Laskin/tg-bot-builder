@@ -42,7 +42,7 @@ export const BLOCK_DEFS = {
     ports: { in: true, out: true },
     defaultData: {
       text: 'Привет! 👋',
-      buttons: [] // [{ text, action: 'next' | 'url', value }]
+      buttons: [] // [{ id, text, kind: 'callback' | 'url', url? }] — 'callback' buttons get their own connection handle on the canvas
     }
   },
 

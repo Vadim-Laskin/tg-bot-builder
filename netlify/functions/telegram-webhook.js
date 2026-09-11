@@ -10,6 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { runFlow } from '../../src/engine/flowEngine.js';
+import { parseCallbackData } from '../../src/engine/buttonId.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -49,9 +50,19 @@ export const handler = async (event) => {
   const callbackData = update.callback_query?.data;
 
   let trigger;
-  if (callbackData) trigger = { type: 'callback', value: callbackData };
-  else if (text.startsWith('/')) trigger = { type: 'command', value: text.split(' ')[0] };
-  else trigger = { type: 'text', value: text };
+  if (callbackData) {
+    // buttons made in the editor encode which block + which button they
+    // are, so a press resumes the flow from exactly that point rather than
+    // matching a separate Событие block
+    const parsed = parseCallbackData(callbackData);
+    trigger = parsed
+      ? { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` }
+      : { type: 'callback', value: callbackData };
+  } else if (text.startsWith('/')) {
+    trigger = { type: 'command', value: text.split(' ')[0] };
+  } else {
+    trigger = { type: 'text', value: text };
+  }
 
   const { data: stateRow } = await supabaseAdmin
     .from('chat_state')
@@ -70,6 +81,13 @@ export const handler = async (event) => {
   const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
   if (!mainFlow) return { statusCode: 200, body: 'bot has no flow yet' };
 
+  // a button resume needs the specific flow that node lives in — it might
+  // be inside a chain (scenario), not the main flow
+  const runFlowSource =
+    trigger.type === 'resume'
+      ? bot.flows.find((f) => f.graph?.nodes?.some((n) => n.id === trigger.nodeId)) ?? mainFlow
+      : mainFlow;
+
   const api = buildTelegramApi({
     telegramToken: bot.telegram_token,
     groqApiKey: bot.groq_api_key,
@@ -78,7 +96,7 @@ export const handler = async (event) => {
 
   try {
     await runFlow({
-      graph: { nodes: mainFlow.graph?.nodes ?? [], edges: mainFlow.graph?.edges ?? [] },
+      graph: { nodes: runFlowSource.graph?.nodes ?? [], edges: runFlowSource.graph?.edges ?? [] },
       trigger,
       context,
       api
@@ -120,7 +138,11 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
   return {
     async sendMessage(chatId, { text, buttons }) {
       const reply_markup = buttons?.length
-        ? { inline_keyboard: [buttons.map((b) => ({ text: b.text, callback_data: (b.value || b.text).slice(0, 64) }))] }
+        ? {
+            inline_keyboard: buttons.map((b) => [
+              b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
+            ])
+          }
         : undefined;
       await tg('sendMessage', { chat_id: chatId, text: text || ' ', reply_markup });
     },
