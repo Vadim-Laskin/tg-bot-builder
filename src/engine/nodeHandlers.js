@@ -7,6 +7,7 @@
 
 import { interpolate } from './flowEngine.js';
 import { getButtonId, buildCallbackData } from './buttonId.js';
+import { extractUrls, fetchUrlContent } from './webContent.js';
 
 const handlers = {
   note: async () => ({ next: 'default' }), // visual only, no-op at runtime
@@ -32,10 +33,22 @@ const handlers = {
 
   aiMessage: async (node, context, api) => {
     const prompt = interpolate(node.data.userPrompt, context);
+
+    // if the prompt contains a link, fetch it and hand the AI its content —
+    // no separate toggle needed, this is a no-op whenever there's no URL
+    let promptWithLinks = prompt;
+    const urls = extractUrls(prompt);
+    if (urls.length) {
+      const pages = await Promise.all(
+        urls.map(async (url) => `Содержимое ${url}:\n${await fetchUrlContent(url)}`)
+      );
+      promptWithLinks = `${prompt}\n\n${pages.join('\n\n')}`;
+    }
+
     const reply = await api.callGroq({
       model: node.data.model,
       systemPrompt: node.data.systemPrompt,
-      userPrompt: prompt
+      userPrompt: promptWithLinks
     });
     if (node.data.saveTo) context.variables[node.data.saveTo] = reply;
     await api.sendMessage(context.chatId, { text: reply, buttons: [] });
