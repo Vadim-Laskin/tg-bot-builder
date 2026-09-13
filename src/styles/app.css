@@ -668,6 +668,18 @@
   border-left: 3px solid var(--wire-message);
 }
 
+.test-msg code {
+  background: var(--surface-3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.test-msg a {
+  color: var(--accent);
+}
+
 .test-msg__button {
   font-size: 11.5px;
   font-weight: 600;
