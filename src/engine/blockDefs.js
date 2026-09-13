@@ -59,7 +59,8 @@ export const BLOCK_DEFS = {
       systemPrompt: 'Ты — дружелюбный ассистент бренда.',
       userPrompt: '{{last_message}}',
       saveTo: '', // optional variable name to store the AI reply
-      editPrevious: false
+      editPrevious: false,
+      allowButtons: false // let the AI attach its own quick-reply buttons when it decides they help
     }
   },
 
@@ -87,7 +88,13 @@ export const BLOCK_DEFS = {
     color: 'var(--wire-condition)',
     ports: { in: true, out: true, branches: ['true', 'false'] },
     defaultData: {
-      variable: '',
+      // variable*/tag* come from the registry ("🔢 Переменные" / "🏷 Теги")
+      // — which pair is used depends on the operator below
+      variableId: '',
+      variableName: '',
+      tagId: '',
+      tagName: '',
+      scope: 'personal',
       operator: 'equals', // equals | notEquals | contains | greaterThan | lessThan | hasTag | notHasTag
       value: ''
     }

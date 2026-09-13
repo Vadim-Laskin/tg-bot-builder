@@ -47,17 +47,31 @@ const handlers = {
       promptWithLinks = `${prompt}\n\n${pages.join('\n\n')}`;
     }
 
-    const reply = await api.callGroq({
-      model: node.data.model,
-      systemPrompt: node.data.systemPrompt,
-      userPrompt: promptWithLinks
-    });
+    let systemPrompt = node.data.systemPrompt;
+    if (node.data.allowButtons) {
+      systemPrompt = `${systemPrompt || ''}\n\nЕсли уместно предложить пользователю короткие варианты ответа, заверши свой ответ ОТДЕЛЬНОЙ строкой строго в виде:\nBUTTONS: Вариант 1 | Вариант 2 | Вариант 3\n(не больше 4 вариантов, каждый до 30 символов, через " | "). Если варианты не нужны — не добавляй такую строку вообще.`;
+    }
+
+    const rawReply = await api.callGroq({ model: node.data.model, systemPrompt, userPrompt: promptWithLinks });
+    const { text: reply, labels } = node.data.allowButtons ? splitQuickReplyButtons(rawReply) : { text: rawReply, labels: [] };
+
     if (node.data.saveTo) context.variables[node.data.saveTo] = reply;
 
-    const messageId = await sendOrEditMessage(node, context, api, { text: reply, buttons: [] });
+    const buttons = labels.map((label, i) => ({
+      text: label,
+      kind: 'callback',
+      callbackData: buildCallbackData(node.id, `c${i}`)
+    }));
+    if (buttons.length) {
+      context.pendingChoices = context.pendingChoices || {};
+      context.pendingChoices[node.id] = labels;
+    }
+
+    const messageId = await sendOrEditMessage(node, context, api, { text: reply, buttons });
     rememberMessageId(context, node.id, messageId);
 
-    return { next: 'default' };
+    // like a Сообщение block with callback buttons: pause for the pick
+    return { next: buttons.length ? 'stop' : 'default' };
   },
 
   action: async (node, context, api) => {
@@ -83,10 +97,18 @@ const handlers = {
   },
 
   condition: async (node, context) => {
-    const { variable, operator, value } = node.data;
-    const actual = context.variables?.[variable] ?? context.globalVariables?.[variable];
-    const allTags = [...(context.tags ?? []), ...(context.globalTags ?? [])];
-    const passed = evaluateCondition(actual, operator, value, allTags);
+    const { operator, value, variableName, tagName, scope } = node.data;
+
+    if (operator === 'hasTag' || operator === 'notHasTag') {
+      if (!tagName) return { next: 'false' };
+      const list = (scope === 'global' ? context.globalTags : context.tags) ?? [];
+      const has = list.includes(tagName);
+      return { next: (operator === 'hasTag' ? has : !has) ? 'true' : 'false' };
+    }
+
+    if (!variableName) return { next: 'false' };
+    const bag = (scope === 'global' ? context.globalVariables : context.variables) ?? {};
+    const passed = evaluateCondition(bag[variableName], operator, value);
     return { next: passed ? 'true' : 'false' };
   },
 
@@ -139,7 +161,7 @@ const handlers = {
   }
 };
 
-function evaluateCondition(actual, operator, expected, tags) {
+function evaluateCondition(actual, operator, expected) {
   switch (operator) {
     case 'equals':
       return String(actual) === String(expected);
@@ -151,10 +173,6 @@ function evaluateCondition(actual, operator, expected, tags) {
       return Number(actual) > Number(expected);
     case 'lessThan':
       return Number(actual) < Number(expected);
-    case 'hasTag':
-      return tags.includes(expected);
-    case 'notHasTag':
-      return !tags.includes(expected);
     default:
       return false;
   }
@@ -185,4 +203,20 @@ function rememberMessageId(context, nodeId, messageId) {
   if (!messageId) return;
   context.messageIds = context.messageIds || {};
   context.messageIds[nodeId] = messageId;
+}
+
+// Looks for a trailing "BUTTONS: A | B | C" line the AI was asked to add
+// (see the aiMessage handler above) and pulls it out of the visible text.
+function splitQuickReplyButtons(rawReply) {
+  const match = /\n?BUTTONS:\s*(.+?)\s*$/i.exec(rawReply ?? '');
+  if (!match) return { text: rawReply, labels: [] };
+
+  const labels = match[1]
+    .split('|')
+    .map((s) => s.trim().slice(0, 30))
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!labels.length) return { text: rawReply, labels: [] };
+
+  return { text: rawReply.slice(0, match.index).trim(), labels };
 }
