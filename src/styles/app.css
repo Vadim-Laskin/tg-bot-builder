@@ -331,6 +331,10 @@
   font-size: 14px;
 }
 
+.editor-topbar__spacer {
+  flex: 1;
+}
+
 .canvas-wrap {
   position: relative;
   background: var(--bg-canvas);
@@ -1003,4 +1007,75 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 6px;
+}
+
+/* ---------- variables / tags registry (VariablesModal, TagsModal) ---------- */
+
+.registry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.registry-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.registry-row__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.registry-row__name {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.registry-row__badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.registry-add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.color-swatches {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-swatch.is-selected {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border-strong);
 }
