@@ -21,9 +21,11 @@ function summarize(type, data) {
     case 'chain':
       return data.flowName || 'не выбрана';
     case 'setVariable':
-      return `${data.name || '—'} ${data.op} ${data.op === 'clear' ? '' : data.value ?? ''}`;
+      return `${data.variableName || '—'} (${data.scope === 'global' ? 'общая' : 'личная'}) ${data.op} ${
+        data.op === 'clear' ? '' : data.value ?? ''
+      }`;
     case 'setTag':
-      return `${data.op === 'add' ? '+ ' : '− '}${data.tag || '—'}`;
+      return `${data.op === 'add' ? '+ ' : '− '}${data.tagName || '—'} (${data.scope === 'global' ? 'общий' : 'личный'})`;
     default:
       return '';
   }
@@ -59,7 +61,7 @@ export default function BlockNode({ id, type, data, selected }) {
       {def.ports.in && <Handle type="target" position={Position.Left} />}
 
       <div className="node__header">
-        <span className="node__dot" />
+        <span className="node__dot" style={type === 'setTag' && data.color ? { background: data.color } : undefined} />
         <span className="node__title">{def.label}</span>
       </div>
 
