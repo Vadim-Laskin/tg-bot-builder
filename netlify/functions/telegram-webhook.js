@@ -50,7 +50,15 @@ export const handler = async (event) => {
   const text = update.message?.text ?? '';
   const callbackData = update.callback_query?.data;
 
+  const { data: stateRow } = await supabaseAdmin
+    .from('chat_state')
+    .select('*')
+    .eq('bot_id', botId)
+    .eq('chat_id', String(chatId))
+    .maybeSingle();
+
   let trigger;
+  let quickReplyText; // set when the pressed button is an AI-generated quick reply
   if (callbackData) {
     // buttons made in the editor encode which block + which button they
     // are, so a press resumes the flow from exactly that point — there's
@@ -61,26 +69,36 @@ export const handler = async (event) => {
       await answerCallbackQuery(bot.telegram_token, update.callback_query.id);
       return { statusCode: 200, body: 'unrecognized callback' };
     }
-    trigger = { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` };
+
+    const quickReplyMatch = /^c(\d+)$/.exec(parsed.buttonId);
+    if (quickReplyMatch) {
+      // an AI "Сообщение с ИИ" quick-reply button — not a graph edge, so
+      // resume from that block's normal output instead of a button handle,
+      // with lastMessage set to whichever option was picked
+      const choices = stateRow?.pending_choices?.[parsed.nodeId] ?? [];
+      quickReplyText = choices[Number(quickReplyMatch[1])];
+      if (quickReplyText === undefined) {
+        console.error('webhook: stale AI quick-reply button', callbackData);
+        await answerCallbackQuery(bot.telegram_token, update.callback_query.id);
+        return { statusCode: 200, body: 'stale quick reply' };
+      }
+      trigger = { type: 'resume', nodeId: parsed.nodeId, handle: 'default' };
+    } else {
+      trigger = { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` };
+    }
   } else if (text.startsWith('/')) {
     trigger = { type: 'command', value: text.split(' ')[0] };
   } else {
     trigger = { type: 'text', value: text };
   }
 
-  const { data: stateRow } = await supabaseAdmin
-    .from('chat_state')
-    .select('*')
-    .eq('bot_id', botId)
-    .eq('chat_id', String(chatId))
-    .maybeSingle();
-
   const context = {
     chatId,
-    lastMessage: text,
+    lastMessage: quickReplyText ?? text,
     variables: stateRow?.variables ?? {},
     tags: stateRow?.tags ?? [],
     messageIds: stateRow?.message_ids ?? {},
+    pendingChoices: stateRow?.pending_choices ?? {},
     globalVariables: bot.global_variables ?? {},
     globalTags: bot.global_tags ?? [],
     // only set for a button press — the message that button lives on, so
@@ -122,6 +140,7 @@ export const handler = async (event) => {
     variables: context.variables,
     tags: context.tags,
     message_ids: context.messageIds,
+    pending_choices: context.pendingChoices,
     updated_at: new Date().toISOString()
   });
 
