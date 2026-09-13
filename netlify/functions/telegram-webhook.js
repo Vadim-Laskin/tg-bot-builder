@@ -79,7 +79,12 @@ export const handler = async (event) => {
     chatId,
     lastMessage: text,
     variables: stateRow?.variables ?? {},
-    tags: stateRow?.tags ?? []
+    tags: stateRow?.tags ?? [],
+    messageIds: stateRow?.message_ids ?? {},
+    // only set for a button press — the message that button lives on, so
+    // an "edit previous message" block knows what to edit. Absent for
+    // /start or plain-text triggers, since there's nothing to edit yet.
+    sourceMessageId: update.callback_query?.message?.message_id
   };
 
   const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
@@ -114,6 +119,7 @@ export const handler = async (event) => {
     chat_id: String(chatId),
     variables: context.variables,
     tags: context.tags,
+    message_ids: context.messageIds,
     updated_at: new Date().toISOString()
   });
 
@@ -133,6 +139,15 @@ async function answerCallbackQuery(telegramToken, callbackQueryId) {
   }).catch(() => {});
 }
 
+function buildReplyMarkup(buttons) {
+  if (!buttons?.length) return undefined;
+  return {
+    inline_keyboard: buttons.map((b) => [
+      b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
+    ])
+  };
+}
+
 function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
   const tg = (method, payload) =>
     fetch(`https://api.telegram.org/bot${telegramToken}/${method}`, {
@@ -145,19 +160,47 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
 
   return {
     async sendMessage(chatId, { text, buttons }) {
-      const reply_markup = buttons?.length
-        ? {
-            inline_keyboard: buttons.map((b) => [
-              b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
-            ])
-          }
-        : undefined;
-      await tg('sendMessage', {
+      const reply_markup = buildReplyMarkup(buttons);
+      const result = await tg('sendMessage', {
         chat_id: chatId,
         text: formatMessageText(text) || ' ',
         parse_mode: 'HTML',
         reply_markup
       });
+      if (!result?.ok) {
+        console.error('sendMessage failed:', result?.description);
+        return null;
+      }
+      return result.result.message_id;
+    },
+
+    // Used by "Редактировать предыдущее сообщение" — edits a message in
+    // place (Telegram keeps the same message_id) instead of sending a new
+    // one. Returns null on failure so the caller can fall back to
+    // sendMessage (e.g. the message is too old, or was already deleted).
+    async editMessage(chatId, messageId, { text, buttons }) {
+      if (!messageId) return null;
+      const result = await tg('editMessageText', {
+        chat_id: chatId,
+        message_id: messageId,
+        text: formatMessageText(text) || ' ',
+        parse_mode: 'HTML',
+        reply_markup: buildReplyMarkup(buttons)
+      });
+      if (!result?.ok) {
+        console.error('editMessage failed, will fall back to sendMessage:', result?.description);
+        return null;
+      }
+      return messageId;
+    },
+
+    // Used by the Действие → "Удалить сообщение" block.
+    async deleteMessage(chatId, messageId) {
+      if (!messageId) return;
+      const result = await tg('deleteMessage', { chat_id: chatId, message_id: messageId });
+      if (!result?.ok) {
+        console.error('deleteMessage failed (message may be too old or already gone):', result?.description);
+      }
     },
 
     async callGroq({ model, systemPrompt, userPrompt }) {
