@@ -17,7 +17,10 @@ function summarize(type, data) {
       if (data.actionType === 'deleteMessage') return data.targetNodeId ? 'удалить сообщение блока…' : 'блок не выбран';
       return data.actionType;
     case 'condition':
-      return `${data.variable || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
+      if (data.operator === 'hasTag' || data.operator === 'notHasTag') {
+        return `${symbolForOperator(data.operator)}: ${data.tagName || '—'}`;
+      }
+      return `${data.variableName || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
       return data.flowName || 'не выбрана';
     case 'setVariable':
