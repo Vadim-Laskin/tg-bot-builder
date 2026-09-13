@@ -1,8 +1,10 @@
 import { create } from 'zustand';
+import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabaseClient.js';
 
 // Postgres tables (see supabase/schema.sql):
-//   bots(id, user_id, name, telegram_token, groq_api_key, created_at)
+//   bots(id, user_id, name, telegram_token, groq_api_key, variable_defs,
+//        tag_defs, global_variables, global_tags, created_at)
 //   flows(id, bot_id, name, is_main, graph jsonb, created_at)
 // `graph` holds { nodes, edges } together; mapFlow/mapBot flatten that
 // into the shape the editor components already expect.
@@ -24,6 +26,8 @@ function mapBot(row) {
     telegramToken: row.telegram_token ?? '',
     groqApiKey: row.groq_api_key ?? '',
     createdAt: row.created_at,
+    variableDefs: row.variable_defs ?? [], // [{id, name, scope}]
+    tagDefs: row.tag_defs ?? [], // [{id, name, color, scope}]
     flows: (row.flows ?? []).map(mapFlow).sort((a, b) => Number(b.isMain) - Number(a.isMain))
   };
 }
@@ -111,6 +115,42 @@ export const useBotStore = create((set, get) => ({
     if (groqApiKey !== undefined) patch.groq_api_key = groqApiKey;
     const { error } = await supabase.from('bots').update(patch).eq('id', botId);
     if (error) console.error('setBotSecrets:', error.message);
+  },
+
+  async createVariable(botId, { name, scope }) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const def = { id: nanoid(6), name: name.trim(), scope };
+    const next = [...(bot?.variableDefs ?? []), def];
+    set((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, variableDefs: next } : b)) }));
+    const { error } = await supabase.from('bots').update({ variable_defs: next }).eq('id', botId);
+    if (error) console.error('createVariable:', error.message);
+    return def.id;
+  },
+
+  async deleteVariable(botId, variableId) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const next = (bot?.variableDefs ?? []).filter((v) => v.id !== variableId);
+    set((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, variableDefs: next } : b)) }));
+    const { error } = await supabase.from('bots').update({ variable_defs: next }).eq('id', botId);
+    if (error) console.error('deleteVariable:', error.message);
+  },
+
+  async createTag(botId, { name, color, scope }) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const def = { id: nanoid(6), name: name.trim(), color, scope };
+    const next = [...(bot?.tagDefs ?? []), def];
+    set((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, tagDefs: next } : b)) }));
+    const { error } = await supabase.from('bots').update({ tag_defs: next }).eq('id', botId);
+    if (error) console.error('createTag:', error.message);
+    return def.id;
+  },
+
+  async deleteTag(botId, tagId) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const next = (bot?.tagDefs ?? []).filter((t) => t.id !== tagId);
+    set((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, tagDefs: next } : b)) }));
+    const { error } = await supabase.from('bots').update({ tag_defs: next }).eq('id', botId);
+    if (error) console.error('deleteTag:', error.message);
   },
 
   setActiveBot(botId) {
