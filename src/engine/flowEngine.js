@@ -105,6 +105,8 @@ export function interpolate(template, context) {
   if (typeof template !== 'string') return template;
   return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
     if (key === 'last_message') return context.lastMessage ?? '';
-    return context.variables?.[key] ?? '';
+    if (context.variables && key in context.variables) return context.variables[key];
+    if (context.globalVariables && key in context.globalVariables) return context.globalVariables[key];
+    return '';
   });
 }

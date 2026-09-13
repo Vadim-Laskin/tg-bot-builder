@@ -110,7 +110,9 @@ export const BLOCK_DEFS = {
     category: 'data',
     color: 'var(--wire-variable)',
     ports: { in: true, out: true },
-    defaultData: { name: '', op: 'set', value: '' } // set | increment | clear
+    // variableId/variableName/scope are set by picking from the registry
+    // (see "🔢 Переменные" in the editor topbar) — not typed free-hand
+    defaultData: { variableId: '', variableName: '', scope: 'personal', op: 'set', value: '' } // set | increment | clear
   },
 
   setTag: {
@@ -120,7 +122,8 @@ export const BLOCK_DEFS = {
     category: 'data',
     color: 'var(--wire-tag)',
     ports: { in: true, out: true },
-    defaultData: { tag: '', op: 'add' } // add | remove
+    // tagId/tagName/scope/color come from the registry ("🏷 Теги")
+    defaultData: { tagId: '', tagName: '', color: '', scope: 'personal', op: 'add' } // add | remove
   }
 };
 

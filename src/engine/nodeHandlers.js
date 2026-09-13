@@ -84,8 +84,9 @@ const handlers = {
 
   condition: async (node, context) => {
     const { variable, operator, value } = node.data;
-    const actual = context.variables?.[variable];
-    const passed = evaluateCondition(actual, operator, value, context.tags ?? []);
+    const actual = context.variables?.[variable] ?? context.globalVariables?.[variable];
+    const allTags = [...(context.tags ?? []), ...(context.globalTags ?? [])];
+    const passed = evaluateCondition(actual, operator, value, allTags);
     return { next: passed ? 'true' : 'false' };
   },
 
@@ -106,25 +107,34 @@ const handlers = {
   },
 
   setVariable: async (node, context) => {
-    const { name, op, value } = node.data;
-    if (!name) return { next: 'default' };
+    const { variableName, scope, op, value } = node.data;
+    if (!variableName) return { next: 'default' };
+    if (scope === 'global') context.globalVariables = context.globalVariables || {};
+    const bag = scope === 'global' ? context.globalVariables : context.variables;
     const rendered = interpolate(value, context);
-    if (op === 'clear') delete context.variables[name];
+    if (op === 'clear') delete bag[variableName];
     else if (op === 'increment') {
-      context.variables[name] = (Number(context.variables[name]) || 0) + (Number(rendered) || 1);
+      bag[variableName] = (Number(bag[variableName]) || 0) + (Number(rendered) || 1);
     } else {
-      context.variables[name] = rendered;
+      bag[variableName] = rendered;
     }
     return { next: 'default' };
   },
 
   setTag: async (node, context) => {
-    const { tag, op } = node.data;
-    if (!tag) return { next: 'default' };
-    const set = new Set(context.tags ?? []);
-    if (op === 'remove') set.delete(tag);
-    else set.add(tag);
-    context.tags = Array.from(set);
+    const { tagName, scope, op } = node.data;
+    if (!tagName) return { next: 'default' };
+    if (scope === 'global') {
+      const set = new Set(context.globalTags ?? []);
+      if (op === 'remove') set.delete(tagName);
+      else set.add(tagName);
+      context.globalTags = Array.from(set);
+    } else {
+      const set = new Set(context.tags ?? []);
+      if (op === 'remove') set.delete(tagName);
+      else set.add(tagName);
+      context.tags = Array.from(set);
+    }
     return { next: 'default' };
   }
 };
