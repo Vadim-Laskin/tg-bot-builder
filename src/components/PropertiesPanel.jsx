@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 
-export default function PropertiesPanel({ node, otherFlows, flowNodes, onChange, onDelete, onCloseMobile }) {
+export default function PropertiesPanel({ node, otherFlows, flowNodes, variableDefs, tagDefs, onChange, onDelete, onCloseMobile }) {
   if (!node) {
     return (
       <aside className="properties">
@@ -232,9 +232,28 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, onChange,
 
       {node.type === 'setVariable' && (
         <>
-          <Field label="Имя переменной">
-            <input className="input" value={data.name} onChange={(e) => set({ name: e.target.value })} />
+          <Field label="Переменная">
+            <select
+              className="select"
+              value={data.variableId}
+              onChange={(e) => {
+                const v = (variableDefs ?? []).find((x) => x.id === e.target.value);
+                set({ variableId: e.target.value, variableName: v?.name ?? '', scope: v?.scope ?? 'personal' });
+              }}
+            >
+              <option value="">— выбрать —</option>
+              {(variableDefs ?? []).map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.scope === 'global' ? 'общая' : 'личная'})
+                </option>
+              ))}
+            </select>
           </Field>
+          {(variableDefs ?? []).length === 0 && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+              Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+            </p>
+          )}
           <Field label="Операция">
             <select className="select" value={data.op} onChange={(e) => set({ op: e.target.value })}>
               <option value="set">установить</option>
@@ -253,8 +272,27 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, onChange,
       {node.type === 'setTag' && (
         <>
           <Field label="Тег">
-            <input className="input" value={data.tag} onChange={(e) => set({ tag: e.target.value })} />
+            <select
+              className="select"
+              value={data.tagId}
+              onChange={(e) => {
+                const t = (tagDefs ?? []).find((x) => x.id === e.target.value);
+                set({ tagId: e.target.value, tagName: t?.name ?? '', color: t?.color ?? '', scope: t?.scope ?? 'personal' });
+              }}
+            >
+              <option value="">— выбрать —</option>
+              {(tagDefs ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.scope === 'global' ? 'общий' : 'личный'})
+                </option>
+              ))}
+            </select>
           </Field>
+          {(tagDefs ?? []).length === 0 && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+              Тегов пока нет — создайте через «🏷 Теги» в шапке редактора.
+            </p>
+          )}
           <Field label="Операция">
             <select className="select" value={data.op} onChange={(e) => set({ op: e.target.value })}>
               <option value="add">добавить</option>

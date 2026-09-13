@@ -12,7 +12,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     { id: nextItemId(), kind: 'log', text: 'Тестовый чат готов. Отправьте /start или любое сообщение.' }
   ]);
   const [input, setInput] = useState('');
-  const contextRef = useRef({ variables: {}, tags: [], chatId: 'preview' });
+  const contextRef = useRef({ variables: {}, tags: [], globalVariables: {}, globalTags: [], chatId: 'preview' });
 
   const push = (item) => setItems((s) => [...s, { id: nextItemId(), ...item }]);
 
@@ -71,7 +71,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
   };
 
   const reset = () => {
-    contextRef.current = { variables: {}, tags: [], chatId: 'preview' };
+    contextRef.current = { variables: {}, tags: [], globalVariables: {}, globalTags: [], chatId: 'preview' };
     setItems([{ id: nextItemId(), kind: 'log', text: 'Контекст сброшен.' }]);
   };
 

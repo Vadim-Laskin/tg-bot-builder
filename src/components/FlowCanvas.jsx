@@ -136,6 +136,8 @@ function InnerCanvas({ bot, flow }) {
         node={selectedNode}
         otherFlows={otherFlows}
         flowNodes={nodes}
+        variableDefs={bot.variableDefs}
+        tagDefs={bot.tagDefs}
         onChange={(data) => setNodes((nds) => nds.map((n) => (n.id === selectedId ? { ...n, data } : n)))}
         onDelete={() => {
           setNodes((nds) => nds.filter((n) => n.id !== selectedId));
