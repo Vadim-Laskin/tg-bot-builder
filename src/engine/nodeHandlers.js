@@ -22,7 +22,9 @@ const handlers = {
         ? { text: b.text, kind: 'url', url: b.url }
         : { text: b.text, kind: 'callback', callbackData: buildCallbackData(node.id, getButtonId(b, i)) }
     );
-    await api.sendMessage(context.chatId, { text, buttons });
+
+    const messageId = await sendOrEditMessage(node, context, api, { text, buttons });
+    rememberMessageId(context, node.id, messageId);
 
     // Callback buttons mean the flow should pause and wait for a press —
     // it resumes later from that specific button's handle (see
@@ -51,7 +53,10 @@ const handlers = {
       userPrompt: promptWithLinks
     });
     if (node.data.saveTo) context.variables[node.data.saveTo] = reply;
-    await api.sendMessage(context.chatId, { text: reply, buttons: [] });
+
+    const messageId = await sendOrEditMessage(node, context, api, { text: reply, buttons: [] });
+    rememberMessageId(context, node.id, messageId);
+
     return { next: 'default' };
   },
 
@@ -66,6 +71,13 @@ const handlers = {
       await api.wait?.(Number(node.data.value) || 0);
     } else if (node.data.actionType === 'typing') {
       await api.sendChatAction?.(context.chatId, 'typing');
+    } else if (node.data.actionType === 'deleteMessage') {
+      const messageId = context.messageIds?.[node.data.targetNodeId];
+      if (messageId) {
+        await api.deleteMessage?.(context.chatId, messageId);
+      } else {
+        api.log?.('Удалить сообщение: для этого чата у выбранного блока ещё нет отправленного сообщения.');
+      }
     }
     return { next: 'default' };
   },
@@ -140,4 +152,27 @@ function evaluateCondition(actual, operator, expected, tags) {
 
 export function getHandler(type) {
   return handlers[type];
+}
+
+// Shared by "Сообщение" and "Сообщение с ИИ": if the block has "Редактировать
+// предыдущее сообщение" on and we actually arrived here via a button press
+// (context.sourceMessageId set), edit that message in place. Otherwise, or
+// if the edit fails (message too old/gone), send a normal new message.
+async function sendOrEditMessage(node, context, api, payload) {
+  if (node.data.editPrevious && context.sourceMessageId && api.editMessage) {
+    const edited = await api.editMessage(context.chatId, context.sourceMessageId, payload);
+    if (edited) {
+      context.sourceMessageId = edited; // keep chaining edits to the same bubble
+      return edited;
+    }
+  }
+  const sent = await api.sendMessage(context.chatId, payload);
+  if (node.data.editPrevious) context.sourceMessageId = sent ?? context.sourceMessageId;
+  return sent;
+}
+
+function rememberMessageId(context, nodeId, messageId) {
+  if (!messageId) return;
+  context.messageIds = context.messageIds || {};
+  context.messageIds[nodeId] = messageId;
 }

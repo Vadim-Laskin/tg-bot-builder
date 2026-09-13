@@ -1,14 +1,29 @@
 // Used by the in-editor "Тест" panel to run a flow against fake IO and show
 // a transcript, without needing a real Telegram bot or Groq key yet.
-// The Netlify function backend (phase 2) will provide a real `api` with the
-// same shape: sendMessage, callGroq, httpRequest, resolveChain, log.
+// The Netlify function backend provides a real `api` with the same shape:
+// sendMessage, editMessage, deleteMessage, callGroq, httpRequest,
+// resolveChain, log.
 
-export function createMockApi({ onMessage, onLog, flows = [] } = {}) {
+let previewMessageSeq = 0;
+
+export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog, flows = [] } = {}) {
   return {
     async sendMessage(chatId, { text, buttons }) {
-      onMessage?.({ text, buttons });
+      const id = `preview-${++previewMessageSeq}`;
+      onMessage?.({ id, text, buttons });
+      return id;
     },
-    async callGroq({ systemPrompt, userPrompt }) {
+    async editMessage(chatId, messageId, { text, buttons }) {
+      const applied = onEditMessage?.(messageId, { text, buttons });
+      // if the "message" no longer exists in the transcript (e.g. tester
+      // hit Сброс), fall back to sending a new one, same as the real bot
+      // would if Telegram said the message was gone
+      return applied ? messageId : null;
+    },
+    async deleteMessage(chatId, messageId) {
+      onDeleteMessage?.(messageId);
+    },
+    async callGroq({ userPrompt }) {
       // No network in preview mode — return a clearly-labeled stub so
       // testers know a real Groq call would happen here in production.
       return `[ИИ-ответ на "${userPrompt}"] (замените реальным ключом Groq для боевого запуска)`;

@@ -42,7 +42,8 @@ export const BLOCK_DEFS = {
     ports: { in: true, out: true },
     defaultData: {
       text: 'Привет! 👋',
-      buttons: [] // [{ id, text, kind: 'callback' | 'url', url? }] — 'callback' buttons get their own connection handle on the canvas
+      buttons: [], // [{ id, text, kind: 'callback' | 'url', url? }] — 'callback' buttons get their own connection handle on the canvas
+      editPrevious: false // edit the message that had the pressed button, instead of sending a new one
     }
   },
 
@@ -57,7 +58,8 @@ export const BLOCK_DEFS = {
       model: 'openai/gpt-oss-120b',
       systemPrompt: 'Ты — дружелюбный ассистент бренда.',
       userPrompt: '{{last_message}}',
-      saveTo: '' // optional variable name to store the AI reply
+      saveTo: '', // optional variable name to store the AI reply
+      editPrevious: false
     }
   },
 
@@ -69,10 +71,11 @@ export const BLOCK_DEFS = {
     color: 'var(--wire-action)',
     ports: { in: true, out: true },
     defaultData: {
-      actionType: 'http', // http | typing | delay
+      actionType: 'http', // http | typing | delay | deleteMessage
       method: 'POST',
       url: '',
-      body: ''
+      body: '',
+      targetNodeId: '' // used by deleteMessage — id of the "Сообщение"/"Сообщение с ИИ" block to delete
     }
   },
 
