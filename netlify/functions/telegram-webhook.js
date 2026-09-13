@@ -32,7 +32,7 @@ export const handler = async (event) => {
 
   const { data: bot, error: botErr } = await supabaseAdmin
     .from('bots')
-    .select('id, telegram_token, groq_api_key, flows(*)')
+    .select('id, telegram_token, groq_api_key, global_variables, global_tags, flows(*)')
     .eq('id', botId)
     .single();
 
@@ -81,6 +81,8 @@ export const handler = async (event) => {
     variables: stateRow?.variables ?? {},
     tags: stateRow?.tags ?? [],
     messageIds: stateRow?.message_ids ?? {},
+    globalVariables: bot.global_variables ?? {},
+    globalTags: bot.global_tags ?? [],
     // only set for a button press — the message that button lives on, so
     // an "edit previous message" block knows what to edit. Absent for
     // /start or plain-text triggers, since there's nothing to edit yet.
@@ -122,6 +124,13 @@ export const handler = async (event) => {
     message_ids: context.messageIds,
     updated_at: new Date().toISOString()
   });
+
+  // global variables/tags are bot-wide, not per-chat, so they go on the
+  // bots row instead of chat_state
+  await supabaseAdmin
+    .from('bots')
+    .update({ global_variables: context.globalVariables, global_tags: context.globalTags })
+    .eq('id', botId);
 
   // stop the button's loading spinner in the Telegram client
   if (update.callback_query) {
