@@ -57,17 +57,25 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       return;
     }
 
+    const quickReplyMatch = /^c(\d+)$/.exec(parsed.buttonId);
+    let trigger;
+    if (quickReplyMatch) {
+      // AI-generated quick-reply button — resume past that block's normal
+      // output, with lastMessage set to the picked option
+      const choices = contextRef.current.pendingChoices?.[parsed.nodeId] ?? [];
+      const chosen = choices[Number(quickReplyMatch[1])];
+      contextRef.current.lastMessage = chosen ?? button.text;
+      trigger = { type: 'resume', nodeId: parsed.nodeId, handle: 'default' };
+    } else {
+      trigger = { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` };
+    }
+
     contextRef.current.sourceMessageId = item.id; // lets "Редактировать предыдущее" find this bubble
 
     // only works if the target block lives in the scenario currently open
     // on the canvas — if it's in a different scenario (chain), open that
     // one to test it, the real bot always resolves this correctly
-    await runFlow({
-      graph,
-      trigger: { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` },
-      context: contextRef.current,
-      api: makeApi()
-    });
+    await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
   };
 
   const reset = () => {

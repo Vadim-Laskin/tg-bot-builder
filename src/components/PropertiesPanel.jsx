@@ -119,6 +119,20 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
             />
             ✏️ Редактировать предыдущее сообщение (если сюда попали по кнопке)
           </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: 10 }}>
+            <input
+              type="checkbox"
+              checked={!!data.allowButtons}
+              onChange={(e) => set({ allowButtons: e.target.checked })}
+            />
+            🔘 Разрешить ИИ самому предлагать кнопки с вариантами ответа
+          </label>
+          {data.allowButtons && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '8px 0 0', lineHeight: 1.4 }}>
+              ИИ сам решает, когда это уместно (до 4 вариантов). Нажатие такой кнопки — как если бы
+              пользователь сам напечатал этот вариант, и сценарий продолжится дальше от этого блока.
+            </p>
+          )}
         </>
       )}
 
@@ -190,9 +204,6 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
 
       {node.type === 'condition' && (
         <>
-          <Field label="Переменная">
-            <input className="input" value={data.variable} onChange={(e) => set({ variable: e.target.value })} />
-          </Field>
           <Field label="Оператор">
             <select className="select" value={data.operator} onChange={(e) => set({ operator: e.target.value })}>
               <option value="equals">равно</option>
@@ -204,9 +215,61 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
               <option value="notHasTag">нет тега</option>
             </select>
           </Field>
-          <Field label="Значение">
-            <input className="input" value={data.value} onChange={(e) => set({ value: e.target.value })} />
-          </Field>
+
+          {data.operator === 'hasTag' || data.operator === 'notHasTag' ? (
+            <>
+              <Field label="Тег">
+                <select
+                  className="select"
+                  value={data.tagId}
+                  onChange={(e) => {
+                    const t = (tagDefs ?? []).find((x) => x.id === e.target.value);
+                    set({ tagId: e.target.value, tagName: t?.name ?? '', scope: t?.scope ?? 'personal' });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(tagDefs ?? []).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.scope === 'global' ? 'общий' : 'личный'})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {(tagDefs ?? []).length === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+                  Тегов пока нет — создайте через «🏷 Теги» в шапке редактора.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <Field label="Переменная">
+                <select
+                  className="select"
+                  value={data.variableId}
+                  onChange={(e) => {
+                    const v = (variableDefs ?? []).find((x) => x.id === e.target.value);
+                    set({ variableId: e.target.value, variableName: v?.name ?? '', scope: v?.scope ?? 'personal' });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(variableDefs ?? []).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.scope === 'global' ? 'общая' : 'личная'})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {(variableDefs ?? []).length === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+                  Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+                </p>
+              )}
+              <Field label="Значение">
+                <input className="input" value={data.value} onChange={(e) => set({ value: e.target.value })} />
+              </Field>
+            </>
+          )}
         </>
       )}
 
