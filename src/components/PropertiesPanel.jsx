@@ -91,6 +91,9 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
               onChange={(e) => set({ userPrompt: e.target.value })}
             />
           </Field>
+          <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
+            Если в промпте есть ссылка (http…) — её содержимое подгрузится и передастся ИИ автоматически.
+          </p>
           <Field label="Сохранить ответ в переменную (необязательно)">
             <input className="input" value={data.saveTo} onChange={(e) => set({ saveTo: e.target.value })} />
           </Field>

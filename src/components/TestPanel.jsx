@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { runFlow } from '../engine/flowEngine.js';
 import { createMockApi } from '../engine/mockApi.js';
 import { parseCallbackData } from '../engine/buttonId.js';
+import { formatMessageText } from '../engine/formatText.js';
 
 export default function TestPanel({ graph, allFlows, onClose }) {
   const [items, setItems] = useState([
@@ -84,7 +85,11 @@ export default function TestPanel({ graph, allFlows, onClose }) {
                 borderLeftColor: it.kind === 'user' ? 'var(--wire-event)' : 'var(--wire-message)'
               }}
             >
-              {it.text}
+              {it.kind === 'bot' ? (
+                <span dangerouslySetInnerHTML={{ __html: formatMessageText(it.text) }} />
+              ) : (
+                it.text
+              )}
               {it.buttons?.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
                   {it.buttons.map((b, bi) => (
