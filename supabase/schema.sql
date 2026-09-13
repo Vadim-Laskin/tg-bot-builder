@@ -123,13 +123,15 @@ create table if not exists public.chat_state (
   variables jsonb not null default '{}'::jsonb,
   tags jsonb not null default '[]'::jsonb,
   message_ids jsonb not null default '{}'::jsonb,
+  pending_choices jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
   primary key (bot_id, chat_id)
 );
 
--- if you ran an earlier version of this file, this adds the new column
+-- if you ran an earlier version of this file, this adds the new columns
 -- without touching your existing rows
 alter table public.chat_state add column if not exists message_ids jsonb not null default '{}'::jsonb;
+alter table public.chat_state add column if not exists pending_choices jsonb not null default '{}'::jsonb;
 
 alter table public.chat_state enable row level security;
 
