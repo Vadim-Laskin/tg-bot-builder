@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 
-export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, onCloseMobile }) {
+export default function PropertiesPanel({ node, otherFlows, flowNodes, onChange, onDelete, onCloseMobile }) {
   if (!node) {
     return (
       <aside className="properties">
@@ -64,6 +64,20 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
           <Field label="Текст сообщения">
             <textarea className="textarea" value={data.text} onChange={(e) => set({ text: e.target.value })} />
           </Field>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginBottom: 14 }}>
+            <input
+              type="checkbox"
+              checked={!!data.editPrevious}
+              onChange={(e) => set({ editPrevious: e.target.checked })}
+            />
+            ✏️ Редактировать предыдущее сообщение (если сюда попали по кнопке)
+          </label>
+          {data.editPrevious && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
+              Как в меню других ботов: нажатие кнопки меняет текст и кнопки того же сообщения вместо
+              отправки нового. Если сюда попали не по кнопке (например, по /start) — отправится новое.
+            </p>
+          )}
           <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} />
         </>
       )}
@@ -97,6 +111,14 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
           <Field label="Сохранить ответ в переменную (необязательно)">
             <input className="input" value={data.saveTo} onChange={(e) => set({ saveTo: e.target.value })} />
           </Field>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={!!data.editPrevious}
+              onChange={(e) => set({ editPrevious: e.target.checked })}
+            />
+            ✏️ Редактировать предыдущее сообщение (если сюда попали по кнопке)
+          </label>
         </>
       )}
 
@@ -111,6 +133,7 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
               <option value="http">HTTP-запрос</option>
               <option value="typing">Индикатор «печатает»</option>
               <option value="delay">Пауза (мс)</option>
+              <option value="deleteMessage">Удалить сообщение</option>
             </select>
           </Field>
           {data.actionType === 'http' && (
@@ -137,6 +160,30 @@ export default function PropertiesPanel({ node, otherFlows, onChange, onDelete, 
             <Field label="Миллисекунды">
               <input className="input" value={data.value ?? ''} onChange={(e) => set({ value: e.target.value })} />
             </Field>
+          )}
+          {data.actionType === 'deleteMessage' && (
+            <>
+              <Field label="Какое сообщение удалить">
+                <select
+                  className="select"
+                  value={data.targetNodeId ?? ''}
+                  onChange={(e) => set({ targetNodeId: e.target.value })}
+                >
+                  <option value="">— выбрать блок —</option>
+                  {(flowNodes ?? [])
+                    .filter((n) => (n.type === 'message' || n.type === 'aiMessage') && n.id !== node.id)
+                    .map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {messageNodeLabel(n)}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 0', lineHeight: 1.4 }}>
+                Удаляет то сообщение, которое отправил выбранный блок, у текущего пользователя. Если
+                этому пользователю тот блок ещё не отправлял сообщение — действие ничего не сделает.
+              </p>
+            </>
           )}
         </>
       )}
@@ -231,6 +278,13 @@ function Field({ label, children }) {
       {children}
     </div>
   );
+}
+
+function messageNodeLabel(n) {
+  const raw = n.type === 'aiMessage' ? n.data.userPrompt : n.data.text;
+  const preview = (raw || '').trim().slice(0, 28) || '(пусто)';
+  const icon = n.type === 'aiMessage' ? '🤖' : '💬';
+  return `${icon} ${preview}`;
 }
 
 function ButtonsEditor({ buttons, onChange }) {

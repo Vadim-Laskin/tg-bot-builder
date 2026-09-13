@@ -135,6 +135,7 @@ function InnerCanvas({ bot, flow }) {
       <PropertiesPanel
         node={selectedNode}
         otherFlows={otherFlows}
+        flowNodes={nodes}
         onChange={(data) => setNodes((nds) => nds.map((n) => (n.id === selectedId ? { ...n, data } : n)))}
         onDelete={() => {
           setNodes((nds) => nds.filter((n) => n.id !== selectedId));

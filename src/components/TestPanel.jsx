@@ -4,18 +4,33 @@ import { createMockApi } from '../engine/mockApi.js';
 import { parseCallbackData } from '../engine/buttonId.js';
 import { formatMessageText } from '../engine/formatText.js';
 
+let itemSeq = 0;
+const nextItemId = () => `item-${++itemSeq}`;
+
 export default function TestPanel({ graph, allFlows, onClose }) {
   const [items, setItems] = useState([
-    { kind: 'log', text: 'Тестовый чат готов. Отправьте /start или любое сообщение.' }
+    { id: nextItemId(), kind: 'log', text: 'Тестовый чат готов. Отправьте /start или любое сообщение.' }
   ]);
   const [input, setInput] = useState('');
   const contextRef = useRef({ variables: {}, tags: [], chatId: 'preview' });
 
-  const push = (item) => setItems((s) => [...s, item]);
+  const push = (item) => setItems((s) => [...s, { id: nextItemId(), ...item }]);
 
   const makeApi = () =>
     createMockApi({
-      onMessage: ({ text: t, buttons }) => push({ kind: 'bot', text: t, buttons }),
+      onMessage: ({ id, text: t, buttons }) => setItems((s) => [...s, { id, kind: 'bot', text: t, buttons }]),
+      onEditMessage: (messageId, { text: t, buttons }) => {
+        let found = false;
+        setItems((s) =>
+          s.map((it) => {
+            if (it.id !== messageId || it.kind !== 'bot') return it;
+            found = true;
+            return { ...it, text: t, buttons };
+          })
+        );
+        return found;
+      },
+      onDeleteMessage: (messageId) => setItems((s) => s.filter((it) => it.id !== messageId)),
       onLog: (t) => push({ kind: 'log', text: t }),
       flows: allFlows
     });
@@ -26,12 +41,13 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     setInput('');
 
     contextRef.current.lastMessage = text;
+    contextRef.current.sourceMessageId = undefined; // plain text/command — no message to edit
     const trigger = text.startsWith('/') ? { type: 'command', value: text } : { type: 'text', value: text };
 
     await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
   };
 
-  const pressButton = async (button) => {
+  const pressButton = async (item, button) => {
     if (button.kind === 'url') return; // just a link in real Telegram, nothing to simulate
 
     push({ kind: 'user', text: `▸ ${button.text}` });
@@ -40,6 +56,8 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       push({ kind: 'log', text: 'Эта кнопка ни к чему не подключена.' });
       return;
     }
+
+    contextRef.current.sourceMessageId = item.id; // lets "Редактировать предыдущее" find this bubble
 
     // only works if the target block lives in the scenario currently open
     // on the canvas — if it's in a different scenario (chain), open that
@@ -54,7 +72,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
   const reset = () => {
     contextRef.current = { variables: {}, tags: [], chatId: 'preview' };
-    setItems([{ kind: 'log', text: 'Контекст сброшен.' }]);
+    setItems([{ id: nextItemId(), kind: 'log', text: 'Контекст сброшен.' }]);
   };
 
   return (
@@ -71,15 +89,15 @@ export default function TestPanel({ graph, allFlows, onClose }) {
         </div>
       </div>
       <div className="test-panel__body">
-        {items.map((it, i) =>
+        {items.map((it) =>
           it.kind === 'log' ? (
-            <div className="test-log" key={i}>
+            <div className="test-log" key={it.id}>
               {it.text}
             </div>
           ) : (
             <div
               className="test-msg"
-              key={i}
+              key={it.id}
               style={{
                 alignSelf: it.kind === 'user' ? 'flex-end' : 'flex-start',
                 borderLeftColor: it.kind === 'user' ? 'var(--wire-event)' : 'var(--wire-message)'
@@ -96,7 +114,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
                     <button
                       key={bi}
                       className="test-msg__button"
-                      onClick={() => pressButton(b)}
+                      onClick={() => pressButton(it, b)}
                       title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
                     >
                       {b.kind === 'url' ? '🔗 ' : ''}
