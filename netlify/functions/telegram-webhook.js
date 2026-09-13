@@ -11,6 +11,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { runFlow } from '../../src/engine/flowEngine.js';
 import { parseCallbackData } from '../../src/engine/buttonId.js';
+import { formatMessageText } from '../../src/engine/formatText.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -151,7 +152,12 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
             ])
           }
         : undefined;
-      await tg('sendMessage', { chat_id: chatId, text: text || ' ', reply_markup });
+      await tg('sendMessage', {
+        chat_id: chatId,
+        text: formatMessageText(text) || ' ',
+        parse_mode: 'HTML',
+        reply_markup
+      });
     },
 
     async callGroq({ model, systemPrompt, userPrompt }) {
