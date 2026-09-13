@@ -30,8 +30,19 @@ create table if not exists public.bots (
   name text not null,
   telegram_token text not null default '',
   groq_api_key text not null default '',
+  variable_defs jsonb not null default '[]'::jsonb, -- [{id, name, scope: 'personal'|'global'}]
+  tag_defs jsonb not null default '[]'::jsonb, -- [{id, name, color, scope: 'personal'|'global'}]
+  global_variables jsonb not null default '{}'::jsonb, -- values for scope='global' variables, shared by every chat
+  global_tags jsonb not null default '[]'::jsonb, -- tag names for scope='global' tags currently "on" for everyone
   created_at timestamptz not null default now()
 );
+
+-- if you ran an earlier version of this file, these add the new columns
+-- without touching your existing rows
+alter table public.bots add column if not exists variable_defs jsonb not null default '[]'::jsonb;
+alter table public.bots add column if not exists tag_defs jsonb not null default '[]'::jsonb;
+alter table public.bots add column if not exists global_variables jsonb not null default '{}'::jsonb;
+alter table public.bots add column if not exists global_tags jsonb not null default '[]'::jsonb;
 
 -- 3. Флоу (у бота: 1 основной + сколько угодно цепочек)
 create table if not exists public.flows (
