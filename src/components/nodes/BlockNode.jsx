@@ -13,7 +13,9 @@ function summarize(type, data) {
     case 'aiMessage':
       return `${data.model}\n↳ ${data.userPrompt || ''}`;
     case 'action':
-      return data.actionType === 'http' ? `${data.method} ${data.url || '…'}` : data.actionType;
+      if (data.actionType === 'http') return `${data.method} ${data.url || '…'}`;
+      if (data.actionType === 'deleteMessage') return data.targetNodeId ? 'удалить сообщение блока…' : 'блок не выбран';
+      return data.actionType;
     case 'condition':
       return `${data.variable || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
