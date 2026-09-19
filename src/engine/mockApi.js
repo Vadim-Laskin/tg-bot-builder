@@ -6,11 +6,12 @@
 
 let previewMessageSeq = 0;
 
-export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog, flows = [] } = {}) {
+export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog, flows = [], ownChatId = 'preview' } = {}) {
   return {
     async sendMessage(chatId, { text, buttons }) {
       const id = `preview-${++previewMessageSeq}`;
-      onMessage?.({ id, text, buttons });
+      const toOtherChat = chatId !== ownChatId;
+      onMessage?.({ id, text, buttons, toOtherChat, chatId });
       return id;
     },
     async editMessage(chatId, messageId, { text, buttons }) {

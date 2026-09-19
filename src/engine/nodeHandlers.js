@@ -33,6 +33,29 @@ const handlers = {
     return { next: hasCallbackButtons ? 'stop' : 'default' };
   },
 
+  // Fire-and-forget by design: sends to a DIFFERENT chat than the one
+  // currently running this flow, so it never pauses the current run even
+  // if it has buttons — those buttons work normally, but as their own
+  // independent resume when someone in the target chat presses one.
+  sendToChat: async (node, context, api) => {
+    const targetChatId = resolveTargetChatId(node.data, context);
+    if (!targetChatId) {
+      api.log?.('Отправить в чат: получатель не определён (проверьте настройки блока).');
+      return { next: 'default' };
+    }
+
+    const text = interpolate(node.data.text, context);
+    const rawButtons = node.data.buttons ?? [];
+    const buttons = rawButtons.map((b, i) =>
+      b.kind === 'url'
+        ? { text: b.text, kind: 'url', url: b.url }
+        : { text: b.text, kind: 'callback', callbackData: buildCallbackData(node.id, getButtonId(b, i)) }
+    );
+
+    await api.sendMessage(targetChatId, { text, buttons });
+    return { next: 'default' };
+  },
+
   aiMessage: async (node, context, api) => {
     const prompt = interpolate(node.data.userPrompt, context);
 
@@ -185,6 +208,18 @@ function evaluateCondition(actual, operator, expected) {
 
 export function getHandler(type) {
   return handlers[type];
+}
+
+function resolveTargetChatId(data, context) {
+  if (data.targetType === 'variable') {
+    const bag = (data.scope === 'global' ? context.globalVariables : context.variables) ?? {};
+    return bag[data.targetVariableName] || null;
+  }
+  if (data.targetType === 'manual') {
+    return interpolate(data.targetManual, context) || null;
+  }
+  // 'group' and 'user' — picked from the bot's known chats in the editor
+  return data.targetChatId || null;
 }
 
 // Shared by "Сообщение" and "Сообщение с ИИ": if the block has "Редактировать

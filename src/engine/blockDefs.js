@@ -47,9 +47,28 @@ export const BLOCK_DEFS = {
     }
   },
 
+  sendToChat: {
+    type: 'sendToChat',
+    label: 'Отправить в чат',
+    description: 'Отправляет сообщение в другой чат — группу, канал или конкретному пользователю.',
+    category: 'content',
+    color: 'var(--wire-broadcast)',
+    ports: { in: true, out: true },
+    defaultData: {
+      targetType: 'group', // group | user | variable | manual
+      targetChatId: '', // for group/user — picked from the bot's known chats
+      targetLabel: '', // denormalized display name for the canvas summary
+      targetVariableId: '',
+      targetVariableName: '',
+      scope: 'personal',
+      targetManual: '', // for manual — a literal chat id, interpolatable
+      text: 'Привет! 👋',
+      buttons: [] // same shape as "Сообщение" — kind: 'callback' buttons work normally when pressed in the target chat
+    }
+  },
+
   aiMessage: {
     type: 'aiMessage',
-    label: 'Сообщение с ИИ',
     description: 'Генерирует ответ через Groq по промпту и контексту диалога.',
     category: 'content',
     color: 'var(--wire-ai)',
