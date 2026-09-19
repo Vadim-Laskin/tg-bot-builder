@@ -26,6 +26,7 @@
   --wire-chain: #38bdf8;
   --wire-variable: #9ad14b;
   --wire-tag: #f2994a;
+  --wire-broadcast: #d946ef;
 }
 
 :root[data-theme='dark'] {
