@@ -16,21 +16,18 @@ const handlers = {
 
   message: async (node, context, api) => {
     const text = interpolate(node.data.text, context);
+    const layout = resolveButtonsLayout(node.data.buttonsLayout, context);
     const rawButtons = node.data.buttons ?? [];
-    const buttons = rawButtons.map((b, i) =>
-      b.kind === 'url'
-        ? { text: b.text, kind: 'url', url: b.url }
-        : { text: b.text, kind: 'callback', callbackData: buildCallbackData(node.id, getButtonId(b, i)) }
-    );
+    const buttons = buildButtons(node.id, rawButtons, layout, context);
 
-    const messageId = await sendOrEditMessage(node, context, api, { text, buttons });
+    const messageId = await sendOrEditMessage(node, context, api, { text, buttons, buttonsLayout: layout });
     rememberMessageId(context, node.id, messageId);
 
-    // Callback buttons mean the flow should pause and wait for a press —
-    // it resumes later from that specific button's handle (see
-    // flowEngine.js's `resume` trigger), not by continuing straight on.
-    const hasCallbackButtons = buttons.some((b) => b.kind === 'callback');
-    return { next: hasCallbackButtons ? 'stop' : 'default' };
+    // Any buttons (inline callback OR keyboard) mean the flow should pause
+    // and wait for a press — it resumes later from that specific button's
+    // handle (see flowEngine.js's `resume` trigger), not by continuing on.
+    const waitsForPress = layout === 'keyboard' ? rawButtons.length > 0 : buttons.some((b) => b.kind === 'callback');
+    return { next: waitsForPress ? 'stop' : 'default' };
   },
 
   // Fire-and-forget by design: sends to a DIFFERENT chat than the one
@@ -45,14 +42,12 @@ const handlers = {
     }
 
     const text = interpolate(node.data.text, context);
-    const rawButtons = node.data.buttons ?? [];
-    const buttons = rawButtons.map((b, i) =>
-      b.kind === 'url'
-        ? { text: b.text, kind: 'url', url: b.url }
-        : { text: b.text, kind: 'callback', callbackData: buildCallbackData(node.id, getButtonId(b, i)) }
-    );
+    // targetType 'group' is forced to inline in the editor already; for
+    // user/variable/manual we trust whatever layout was configured
+    const layout = node.data.targetType === 'group' ? 'inline' : node.data.buttonsLayout || 'inline';
+    const buttons = buildButtons(node.id, node.data.buttons ?? [], layout, context);
 
-    await api.sendMessage(targetChatId, { text, buttons });
+    await api.sendMessage(targetChatId, { text, buttons, buttonsLayout: layout });
     return { next: 'default' };
   },
 
@@ -90,7 +85,7 @@ const handlers = {
       context.pendingChoices[node.id] = labels;
     }
 
-    const messageId = await sendOrEditMessage(node, context, api, { text: reply, buttons });
+    const messageId = await sendOrEditMessage(node, context, api, { text: reply, buttons, buttonsLayout: 'inline' });
     rememberMessageId(context, node.id, messageId);
 
     // like a Сообщение block with callback buttons: pause for the pick
@@ -222,12 +217,44 @@ function resolveTargetChatId(data, context) {
   return data.targetChatId || null;
 }
 
+// Telegram has no reply keyboard outside private chats — the editor can
+// only guess at this for "Сообщение" (it always replies in whatever chat
+// triggered it), so this is the actual, reliable check, done right before
+// sending.
+function resolveButtonsLayout(requestedLayout, context) {
+  if (requestedLayout !== 'keyboard') return 'inline';
+  return context.chatType && context.chatType !== 'private' ? 'inline' : 'keyboard';
+}
+
+// Builds the button list actually handed to api.sendMessage/editMessage,
+// registering each callback/keyboard button's target under `nodeId` so a
+// later press can be traced back to it — inline via callback_data
+// (buttonId.js), keyboard via context.pendingKeyboard (webhook persists it
+// to chat_state.pending_keyboard, matched by the button's own text).
+function buildButtons(nodeId, rawButtons, layout, context) {
+  if (layout === 'keyboard') {
+    context.pendingKeyboard = Object.fromEntries(
+      rawButtons.map((b, i) => [b.text, { nodeId, buttonId: getButtonId(b, i) }])
+    );
+    return rawButtons.map((b) => ({ text: b.text, kind: 'keyboard' }));
+  }
+  return rawButtons.map((b, i) =>
+    b.kind === 'url'
+      ? { text: b.text, kind: 'url', url: b.url }
+      : { text: b.text, kind: 'callback', callbackData: buildCallbackData(nodeId, getButtonId(b, i)) }
+  );
+}
+
 // Shared by "Сообщение" and "Сообщение с ИИ": if the block has "Редактировать
 // предыдущее сообщение" on and we actually arrived here via a button press
 // (context.sourceMessageId set), edit that message in place. Otherwise, or
 // if the edit fails (message too old/gone), send a normal new message.
+// Telegram's editMessageText can never attach a reply keyboard, only an
+// inline one — so a keyboard-layout message always sends fresh.
 async function sendOrEditMessage(node, context, api, payload) {
-  if (node.data.editPrevious && context.sourceMessageId && api.editMessage) {
+  const canEdit =
+    node.data.editPrevious && context.sourceMessageId && api.editMessage && payload.buttonsLayout !== 'keyboard';
+  if (canEdit) {
     const edited = await api.editMessage(context.chatId, context.sourceMessageId, payload);
     if (edited) {
       context.sourceMessageId = edited; // keep chaining edits to the same bubble
@@ -235,7 +262,7 @@ async function sendOrEditMessage(node, context, api, payload) {
     }
   }
   const sent = await api.sendMessage(context.chatId, payload);
-  if (node.data.editPrevious) context.sourceMessageId = sent ?? context.sourceMessageId;
+  if (node.data.editPrevious && payload.buttonsLayout !== 'keyboard') context.sourceMessageId = sent ?? context.sourceMessageId;
   return sent;
 }
 

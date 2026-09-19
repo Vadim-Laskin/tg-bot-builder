@@ -42,7 +42,8 @@ export const BLOCK_DEFS = {
     ports: { in: true, out: true },
     defaultData: {
       text: 'Привет! 👋',
-      buttons: [], // [{ id, text, kind: 'callback' | 'url', url? }] — 'callback' buttons get their own connection handle on the canvas
+      buttonsLayout: 'inline', // inline (под сообщением) | keyboard (под полем ввода) — групп/каналы всегда получают inline, решается автоматически
+      buttons: [], // [{ id, text, kind: 'callback' | 'url', url?, color? }] — color is editor-only, Telegram has no button colors
       editPrevious: false // edit the message that had the pressed button, instead of sending a new one
     }
   },
@@ -63,6 +64,7 @@ export const BLOCK_DEFS = {
       scope: 'personal',
       targetManual: '', // for manual — a literal chat id, interpolatable
       text: 'Привет! 👋',
+      buttonsLayout: 'inline', // forced to 'inline' in the UI when targetType is 'group'
       buttons: [] // same shape as "Сообщение" — kind: 'callback' buttons work normally when pressed in the target chat
     }
   },
