@@ -213,6 +213,7 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
               <option value="lessThan">меньше</option>
               <option value="hasTag">есть тег</option>
               <option value="notHasTag">нет тега</option>
+              <option value="chatType">источник сообщения</option>
             </select>
           </Field>
 
@@ -241,6 +242,13 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
                 </p>
               )}
             </>
+          ) : data.operator === 'chatType' ? (
+            <Field label="Сообщение пришло из">
+              <select className="select" value={data.value || 'private'} onChange={(e) => set({ value: e.target.value })}>
+                <option value="private">Личные сообщения</option>
+                <option value="group">Группа</option>
+              </select>
+            </Field>
           ) : (
             <>
               <Field label="Переменная">

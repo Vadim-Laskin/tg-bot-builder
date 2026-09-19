@@ -29,10 +29,15 @@ export default function TopBar({ view, onNavigate }) {
 
       {profile && (
         <div className="topbar__account">
-          <span className="topbar__email" title={profile.email}>
+          <button
+            className="topbar__email"
+            title={profile.email}
+            onClick={() => onNavigate('account')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+          >
             {profile.email}
             {profile.is_admin && <span className="topbar__admin-badge">admin</span>}
-          </span>
+          </button>
           <button className="btn btn--sm" onClick={signOut}>
             Выйти
           </button>

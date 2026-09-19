@@ -12,7 +12,15 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     { id: nextItemId(), kind: 'log', text: 'Тестовый чат готов. Отправьте /start или любое сообщение.' }
   ]);
   const [input, setInput] = useState('');
-  const contextRef = useRef({ variables: {}, tags: [], globalVariables: {}, globalTags: [], chatId: 'preview' });
+  const [chatKind, setChatKind] = useState('private'); // simulated source for the "источник сообщения" condition
+  const contextRef = useRef({
+    variables: {},
+    tags: [],
+    globalVariables: {},
+    globalTags: [],
+    chatId: 'preview',
+    chatType: 'private'
+  });
 
   const push = (item) => setItems((s) => [...s, { id: nextItemId(), ...item }]);
 
@@ -78,8 +86,23 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
   };
 
+  const toggleChatKind = () => {
+    setChatKind((k) => {
+      const next = k === 'private' ? 'group' : 'private';
+      contextRef.current.chatType = next;
+      return next;
+    });
+  };
+
   const reset = () => {
-    contextRef.current = { variables: {}, tags: [], globalVariables: {}, globalTags: [], chatId: 'preview' };
+    contextRef.current = {
+      variables: {},
+      tags: [],
+      globalVariables: {},
+      globalTags: [],
+      chatId: 'preview',
+      chatType: chatKind
+    };
     setItems([{ id: nextItemId(), kind: 'log', text: 'Контекст сброшен.' }]);
   };
 
@@ -88,6 +111,9 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       <div className="test-panel__header">
         <span>🧪 Тест сценария</span>
         <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn--sm" onClick={toggleChatKind} title="Откуда как будто пришло сообщение">
+            {chatKind === 'private' ? '👤 Личка' : '👥 Группа'}
+          </button>
           <button className="btn btn--sm" onClick={reset}>
             Сброс
           </button>

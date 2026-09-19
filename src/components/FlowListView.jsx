@@ -3,7 +3,7 @@ import Modal from './Modal.jsx';
 import SecretsForm from './SecretsForm.jsx';
 import { useBotStore } from '../store/useBotStore.js';
 
-export default function FlowListView({ onOpenFlow, onBack }) {
+export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, onBack }) {
   const bot = useBotStore((s) => s.getActiveBot());
   const setActiveFlow = useBotStore((s) => s.setActiveFlow);
   const addChainFlow = useBotStore((s) => s.addChainFlow);
@@ -56,7 +56,13 @@ export default function FlowListView({ onOpenFlow, onBack }) {
             {bot.telegramToken ? 'токен задан' : 'токен не задан'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn" onClick={onOpenUsers}>
+            👥 Пользователи
+          </button>
+          <button className="btn" onClick={onOpenChannels}>
+            💬 Группы и каналы
+          </button>
           <button className="btn" onClick={() => setSecretsOpen(true)}>
             🔑 Ключи бота
           </button>
