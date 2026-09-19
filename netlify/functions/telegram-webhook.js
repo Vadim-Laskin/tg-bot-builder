@@ -47,8 +47,38 @@ export const handler = async (event) => {
   const chatId = message?.chat?.id;
   if (!chatId) return { statusCode: 200, body: 'no chat in update' };
 
+  const chat = message.chat;
+  if (chat.type === 'group' || chat.type === 'supergroup' || chat.type === 'channel') {
+    const { data: existingChat } = await supabaseAdmin
+      .from('bot_chats')
+      .select('is_enabled')
+      .eq('bot_id', botId)
+      .eq('chat_id', String(chatId))
+      .maybeSingle();
+
+    await supabaseAdmin.from('bot_chats').upsert({
+      bot_id: botId,
+      chat_id: String(chatId),
+      title: chat.title || '',
+      type: chat.type,
+      is_enabled: existingChat?.is_enabled ?? true, // preserve an existing owner-set toggle
+      last_seen_at: new Date().toISOString()
+    });
+
+    if (existingChat && !existingChat.is_enabled) {
+      return { statusCode: 200, body: 'bot disabled in this chat' };
+    }
+  }
+
   const text = update.message?.text ?? '';
   const callbackData = update.callback_query?.data;
+
+  if (callbackData) {
+    const label = findPressedButtonText(update.callback_query) || '(кнопка)';
+    logMessage(botId, chatId, 'in', `▸ ${label}`);
+  } else if (text) {
+    logMessage(botId, chatId, 'in', text);
+  }
 
   const { data: stateRow } = await supabaseAdmin
     .from('chat_state')
@@ -104,7 +134,10 @@ export const handler = async (event) => {
     // only set for a button press — the message that button lives on, so
     // an "edit previous message" block knows what to edit. Absent for
     // /start or plain-text triggers, since there's nothing to edit yet.
-    sourceMessageId: update.callback_query?.message?.message_id
+    sourceMessageId: update.callback_query?.message?.message_id,
+    // 'private' | 'group' | 'supergroup' | 'channel' — used by the
+    // "источник сообщения" condition operator
+    chatType: message?.chat?.type
   };
 
   const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
@@ -120,7 +153,8 @@ export const handler = async (event) => {
   const api = buildTelegramApi({
     telegramToken: bot.telegram_token,
     groqApiKey: bot.groq_api_key,
-    flows: bot.flows
+    flows: bot.flows,
+    botId
   });
 
   try {
@@ -141,6 +175,8 @@ export const handler = async (event) => {
     tags: context.tags,
     message_ids: context.messageIds,
     pending_choices: context.pendingChoices,
+    display_name: [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || null,
+    username: chat.username || null,
     updated_at: new Date().toISOString()
   });
 
@@ -167,6 +203,31 @@ async function answerCallbackQuery(telegramToken, callbackQueryId) {
   }).catch(() => {});
 }
 
+// Best-effort, fire-and-forget — a logging hiccup should never break the
+// bot's actual reply, so this is never awaited by its callers.
+function logMessage(botId, chatId, direction, text) {
+  if (!text) return;
+  supabaseAdmin
+    .from('chat_messages')
+    .insert({ bot_id: botId, chat_id: String(chatId), direction, text })
+    .then(
+      () => {},
+      (e) => console.error('chat_messages log failed:', e.message)
+    );
+}
+
+// Telegram includes the message's own reply_markup back in callback_query,
+// so the pressed button's label can be recovered for the history log.
+function findPressedButtonText(callbackQuery) {
+  const rows = callbackQuery?.message?.reply_markup?.inline_keyboard ?? [];
+  for (const row of rows) {
+    for (const btn of row) {
+      if (btn.callback_data === callbackQuery.data) return btn.text;
+    }
+  }
+  return null;
+}
+
 function buildReplyMarkup(buttons) {
   if (!buttons?.length) return undefined;
   return {
@@ -176,7 +237,7 @@ function buildReplyMarkup(buttons) {
   };
 }
 
-function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
+function buildTelegramApi({ telegramToken, groqApiKey, flows, botId }) {
   const tg = (method, payload) =>
     fetch(`https://api.telegram.org/bot${telegramToken}/${method}`, {
       method: 'POST',
@@ -199,6 +260,7 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
         console.error('sendMessage failed:', result?.description);
         return null;
       }
+      logMessage(botId, chatId, 'out', text);
       return result.result.message_id;
     },
 
@@ -219,6 +281,7 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows }) {
         console.error('editMessage failed, will fall back to sendMessage:', result?.description);
         return null;
       }
+      logMessage(botId, chatId, 'out', text);
       return messageId;
     },
 
