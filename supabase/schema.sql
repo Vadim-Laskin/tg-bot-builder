@@ -132,6 +132,8 @@ create table if not exists public.chat_state (
 -- without touching your existing rows
 alter table public.chat_state add column if not exists message_ids jsonb not null default '{}'::jsonb;
 alter table public.chat_state add column if not exists pending_choices jsonb not null default '{}'::jsonb;
+alter table public.chat_state add column if not exists display_name text;
+alter table public.chat_state add column if not exists username text;
 
 alter table public.chat_state enable row level security;
 
@@ -142,3 +144,54 @@ create policy "chat_state: owner can read" on public.chat_state
   );
 -- Намеренно нет insert/update/delete политик для anon/authenticated —
 -- писать может только service role (вебхук), который обходит RLS.
+
+-- 6. История сообщений (для профиля пользователя бота), пишет только вебхук
+create table if not exists public.chat_messages (
+  id bigint generated always as identity primary key,
+  bot_id uuid not null references public.bots(id) on delete cascade,
+  chat_id text not null,
+  direction text not null check (direction in ('in', 'out')),
+  text text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists chat_messages_bot_chat_idx on public.chat_messages (bot_id, chat_id, created_at desc);
+
+alter table public.chat_messages enable row level security;
+
+drop policy if exists "chat_messages: owner can read" on public.chat_messages;
+create policy "chat_messages: owner can read" on public.chat_messages
+  for select using (
+    exists (select 1 from public.bots b where b.id = chat_messages.bot_id and b.user_id = auth.uid())
+  );
+
+-- 7. Группы/каналы, куда добавлен бот — список + настройка "отвечать/не отвечать"
+create table if not exists public.bot_chats (
+  bot_id uuid not null references public.bots(id) on delete cascade,
+  chat_id text not null,
+  title text not null default '',
+  type text not null default 'group', -- group | supergroup | channel
+  is_enabled boolean not null default true,
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  primary key (bot_id, chat_id)
+);
+
+alter table public.bot_chats enable row level security;
+
+drop policy if exists "bot_chats: owner can read" on public.bot_chats;
+create policy "bot_chats: owner can read" on public.bot_chats
+  for select using (
+    exists (select 1 from public.bots b where b.id = bot_chats.bot_id and b.user_id = auth.uid())
+  );
+
+-- owner can flip is_enabled from the UI directly (not security-sensitive,
+-- unlike chat_state/chat_messages, so no need to route this through the
+-- webhook's service role)
+drop policy if exists "bot_chats: owner can update" on public.bot_chats;
+create policy "bot_chats: owner can update" on public.bot_chats
+  for update using (
+    exists (select 1 from public.bots b where b.id = bot_chats.bot_id and b.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.bots b where b.id = bot_chats.bot_id and b.user_id = auth.uid())
+  );
