@@ -177,6 +177,7 @@ export const handler = async (event) => {
     pending_choices: context.pendingChoices,
     display_name: [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || null,
     username: chat.username || null,
+    chat_type: chat.type,
     updated_at: new Date().toISOString()
   });
 
