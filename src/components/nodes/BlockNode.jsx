@@ -1,6 +1,7 @@
 import { Handle, Position } from 'reactflow';
 import { BLOCK_DEFS } from '../../engine/blockDefs.js';
 import { getButtonId } from '../../engine/buttonId.js';
+import { groupButtonsIntoRows } from '../../engine/buttonLayout.js';
 
 function summarize(type, data) {
   switch (type) {
@@ -70,7 +71,10 @@ export default function BlockNode({ id, type, data, selected }) {
   const body = summarize(type, data);
   const supportsButtons = type === 'message' || type === 'sendToChat';
   const buttons = supportsButtons ? data.buttons ?? [] : [];
-  const callbackButtons = buttons.filter((b) => b.kind !== 'url');
+  const layout = data.buttonsLayout || 'inline';
+  // keyboard-layout buttons are always wireable (no such thing as a
+  // "keyboard URL button" in Telegram); inline url buttons never are
+  const wireableButtons = layout === 'keyboard' ? buttons : buttons.filter((b) => b.kind !== 'url');
 
   return (
     <div className={`node${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
@@ -85,26 +89,37 @@ export default function BlockNode({ id, type, data, selected }) {
 
       {supportsButtons && buttons.length > 0 && (
         <div className="node__buttons">
-          {buttons.map((b, i) => (
-            <div className="node__button-row" key={getButtonId(b, i)}>
-              <span className="node__button-chip">
-                {b.kind === 'url' ? '🔗 ' : ''}
-                {b.text || 'Кнопка'}
-              </span>
-              {b.kind !== 'url' && (
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={`btn-${getButtonId(b, i)}`}
-                  className="node__button-handle"
-                />
-              )}
+          {groupButtonsIntoRows(buttons).map((row, ri) => (
+            <div className="node__button-grid-row" key={ri}>
+              {row.map((b) => {
+                const i = buttons.indexOf(b);
+                const wireable = layout === 'keyboard' || b.kind !== 'url';
+                return (
+                  <div className="node__button-cell" key={getButtonId(b, i)}>
+                    <span
+                      className="node__button-chip"
+                      style={b.color ? { borderLeft: `3px solid ${b.color}` } : undefined}
+                    >
+                      {layout === 'keyboard' ? '⌨️ ' : b.kind === 'url' ? '🔗 ' : ''}
+                      {b.text || 'Кнопка'}
+                    </span>
+                    {wireable && (
+                      <Handle
+                        type="source"
+                        position={Position.Right}
+                        id={`btn-${getButtonId(b, i)}`}
+                        className="node__button-handle"
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
       )}
 
-      {type === 'message' && buttons.length > 0 && callbackButtons.length === 0 && (
+      {type === 'message' && buttons.length > 0 && wireableButtons.length === 0 && (
         // every button is a plain URL button — nothing to branch on, so the
         // node still needs a way to continue to whatever comes next
         <Handle type="source" position={Position.Right} />
