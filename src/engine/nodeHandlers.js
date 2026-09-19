@@ -99,6 +99,11 @@ const handlers = {
   condition: async (node, context) => {
     const { operator, value, variableName, tagName, scope } = node.data;
 
+    if (operator === 'chatType') {
+      const actual = context.chatType === 'private' ? 'private' : 'group'; // supergroup counts as group
+      return { next: actual === (value || 'private') ? 'true' : 'false' };
+    }
+
     if (operator === 'hasTag' || operator === 'notHasTag') {
       if (!tagName) return { next: 'false' };
       const list = (scope === 'global' ? context.globalTags : context.tags) ?? [];

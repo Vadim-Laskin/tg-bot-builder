@@ -83,7 +83,7 @@ export const BLOCK_DEFS = {
   condition: {
     type: 'condition',
     label: 'По условию',
-    description: 'Ветвление по переменной/тегу: «да» или «нет».',
+    description: 'Ветвление по переменной, тегу или источнику сообщения (личка/группа): «да» или «нет».',
     category: 'logic',
     color: 'var(--wire-condition)',
     ports: { in: true, out: true, branches: ['true', 'false'] },
@@ -95,8 +95,8 @@ export const BLOCK_DEFS = {
       tagId: '',
       tagName: '',
       scope: 'personal',
-      operator: 'equals', // equals | notEquals | contains | greaterThan | lessThan | hasTag | notHasTag
-      value: ''
+      operator: 'equals', // equals | notEquals | contains | greaterThan | lessThan | hasTag | notHasTag | chatType
+      value: '' // comparison target — also holds 'private' | 'group' when operator is chatType
     }
   },
 
