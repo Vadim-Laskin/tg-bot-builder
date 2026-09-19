@@ -20,6 +20,9 @@ function summarize(type, data) {
       if (data.operator === 'hasTag' || data.operator === 'notHasTag') {
         return `${symbolForOperator(data.operator)}: ${data.tagName || '—'}`;
       }
+      if (data.operator === 'chatType') {
+        return `источник: ${data.value === 'group' ? 'группа' : 'личка'}`;
+      }
       return `${data.variableName || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
       return data.flowName || 'не выбрана';
