@@ -10,6 +10,15 @@ function summarize(type, data) {
       return `${labelForTrigger(data.triggerType)}: ${data.value || '—'}`;
     case 'message':
       return data.text || '';
+    case 'sendToChat': {
+      const dest =
+        data.targetType === 'variable'
+          ? `по переменной: ${data.targetVariableName || '—'}`
+          : data.targetType === 'manual'
+            ? `вручную: ${data.targetManual || '—'}`
+            : data.targetLabel || '— получатель не выбран —';
+      return `→ ${dest}\n${data.text || ''}`;
+    }
     case 'aiMessage':
       return `${data.model}\n↳ ${data.userPrompt || ''}`;
     case 'action':
@@ -59,7 +68,8 @@ export default function BlockNode({ id, type, data, selected }) {
   const def = BLOCK_DEFS[type];
   if (!def) return null;
   const body = summarize(type, data);
-  const buttons = type === 'message' ? data.buttons ?? [] : [];
+  const supportsButtons = type === 'message' || type === 'sendToChat';
+  const buttons = supportsButtons ? data.buttons ?? [] : [];
   const callbackButtons = buttons.filter((b) => b.kind !== 'url');
 
   return (
@@ -73,7 +83,7 @@ export default function BlockNode({ id, type, data, selected }) {
 
       <div className={`node__body${body ? '' : ' node__body--empty'}`}>{body || 'Не настроено'}</div>
 
-      {type === 'message' && buttons.length > 0 && (
+      {supportsButtons && buttons.length > 0 && (
         <div className="node__buttons">
           {buttons.map((b, i) => (
             <div className="node__button-row" key={getButtonId(b, i)}>
@@ -100,7 +110,14 @@ export default function BlockNode({ id, type, data, selected }) {
         <Handle type="source" position={Position.Right} />
       )}
 
+      {type === 'message' && buttons.length === 0 && <Handle type="source" position={Position.Right} />}
+
+      {/* sendToChat always continues its own flow right away — its
+          buttons are for whoever it messaged, not for pausing this run */}
+      {type === 'sendToChat' && <Handle type="source" position={Position.Right} />}
+
       {type !== 'message' &&
+        type !== 'sendToChat' &&
         (def.ports.branches ? (
           <>
             <div className="node__branch-labels">
@@ -113,8 +130,6 @@ export default function BlockNode({ id, type, data, selected }) {
         ) : (
           def.ports.out && <Handle type="source" position={Position.Right} />
         ))}
-
-      {type === 'message' && buttons.length === 0 && <Handle type="source" position={Position.Right} />}
     </div>
   );
 }
