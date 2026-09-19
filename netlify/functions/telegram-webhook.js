@@ -43,7 +43,9 @@ export const handler = async (event) => {
     return { statusCode: 200, body: 'ignored' };
   }
 
-  const message = update.message ?? update.callback_query?.message;
+  // channel posts arrive as their own update type, not as `message` —
+  // easy to miss, since everything else (groups, private chats) uses `message`
+  const message = update.message ?? update.callback_query?.message ?? update.channel_post ?? update.edited_channel_post;
   const chatId = message?.chat?.id;
   if (!chatId) return { statusCode: 200, body: 'no chat in update' };
 
@@ -70,7 +72,7 @@ export const handler = async (event) => {
     }
   }
 
-  const text = update.message?.text ?? '';
+  const text = update.message?.text ?? update.channel_post?.text ?? '';
   const callbackData = update.callback_query?.data;
 
   if (callbackData) {
