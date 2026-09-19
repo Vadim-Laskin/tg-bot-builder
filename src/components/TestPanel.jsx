@@ -26,7 +26,8 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
   const makeApi = () =>
     createMockApi({
-      onMessage: ({ id, text: t, buttons }) => setItems((s) => [...s, { id, kind: 'bot', text: t, buttons }]),
+      onMessage: ({ id, text: t, buttons, toOtherChat, chatId }) =>
+        setItems((s) => [...s, { id, kind: 'bot', text: t, buttons, toOtherChat, chatId }]),
       onEditMessage: (messageId, { text: t, buttons }) => {
         let found = false;
         setItems((s) =>
@@ -40,7 +41,8 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       },
       onDeleteMessage: (messageId) => setItems((s) => s.filter((it) => it.id !== messageId)),
       onLog: (t) => push({ kind: 'log', text: t }),
-      flows: allFlows
+      flows: allFlows,
+      ownChatId: contextRef.current.chatId
     });
 
   const send = async (text) => {
@@ -137,6 +139,11 @@ export default function TestPanel({ graph, allFlows, onClose }) {
                 borderLeftColor: it.kind === 'user' ? 'var(--wire-event)' : 'var(--wire-message)'
               }}
             >
+              {it.toOtherChat && (
+                <div style={{ fontSize: 10, color: 'var(--wire-broadcast)', marginBottom: 3, fontWeight: 700 }}>
+                  → в чат {it.chatId}
+                </div>
+              )}
               {it.kind === 'bot' ? (
                 <span dangerouslySetInnerHTML={{ __html: formatMessageText(it.text) }} />
               ) : (

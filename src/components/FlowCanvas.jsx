@@ -18,6 +18,7 @@ import PropertiesPanel from './PropertiesPanel.jsx';
 import TestPanel from './TestPanel.jsx';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import { useBotStore } from '../store/useBotStore.js';
+import { supabase } from '../lib/supabaseClient.js';
 
 const nodeTypes = Object.fromEntries(Object.keys(BLOCK_DEFS).map((t) => [t, BlockNode]));
 // registering our component as the 'default' edge type means it applies to
@@ -99,6 +100,31 @@ function InnerCanvas({ bot, flow }) {
     [bot.flows, flow.id]
   );
 
+  // for the "Отправить в чат" block's group/user pickers — loaded once per
+  // bot, not kept live-updated, since picking a stale-by-a-minute chat is
+  // harmless here (worst case: the list refreshes next time you open this bot)
+  const [knownChats, setKnownChats] = useState([]);
+  const [knownUsers, setKnownUsers] = useState([]);
+  useEffect(() => {
+    supabase
+      .from('bot_chats')
+      .select('chat_id, title, type')
+      .eq('bot_id', bot.id)
+      .then(({ data, error }) => {
+        if (error) console.error('load bot_chats:', error.message);
+        setKnownChats(data ?? []);
+      });
+    supabase
+      .from('chat_state')
+      .select('chat_id, display_name, username')
+      .eq('bot_id', bot.id)
+      .eq('chat_type', 'private')
+      .then(({ data, error }) => {
+        if (error) console.error('load chat_state users:', error.message);
+        setKnownUsers(data ?? []);
+      });
+  }, [bot.id]);
+
   return (
     <div className="editor-layout">
       <div className="canvas-wrap" ref={wrapRef}>
@@ -138,6 +164,8 @@ function InnerCanvas({ bot, flow }) {
         flowNodes={nodes}
         variableDefs={bot.variableDefs}
         tagDefs={bot.tagDefs}
+        knownChats={knownChats}
+        knownUsers={knownUsers}
         onChange={(data) => setNodes((nds) => nds.map((n) => (n.id === selectedId ? { ...n, data } : n)))}
         onDelete={() => {
           setNodes((nds) => nds.filter((n) => n.id !== selectedId));

@@ -1,7 +1,29 @@
+import { useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
+import VariableInserter from './VariableInserter.jsx';
 
-export default function PropertiesPanel({ node, otherFlows, flowNodes, variableDefs, tagDefs, onChange, onDelete, onCloseMobile }) {
+export default function PropertiesPanel({
+  node,
+  otherFlows,
+  flowNodes,
+  variableDefs,
+  tagDefs,
+  knownChats,
+  knownUsers,
+  onChange,
+  onDelete,
+  onCloseMobile
+}) {
+  const messageTextRef = useRef(null);
+  const systemPromptRef = useRef(null);
+  const userPromptRef = useRef(null);
+  const httpUrlRef = useRef(null);
+  const httpBodyRef = useRef(null);
+  const setVariableValueRef = useRef(null);
+  const sendToChatTextRef = useRef(null);
+  const sendToChatManualRef = useRef(null);
+
   if (!node) {
     return (
       <aside className="properties">
@@ -62,8 +84,19 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
       {node.type === 'message' && (
         <>
           <Field label="Текст сообщения">
-            <textarea className="textarea" value={data.text} onChange={(e) => set({ text: e.target.value })} />
+            <textarea
+              ref={messageTextRef}
+              className="textarea"
+              value={data.text}
+              onChange={(e) => set({ text: e.target.value })}
+            />
           </Field>
+          <VariableInserter
+            variableDefs={variableDefs}
+            targetRef={messageTextRef}
+            value={data.text}
+            onChange={(text) => set({ text })}
+          />
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginBottom: 14 }}>
             <input
               type="checkbox"
@@ -93,18 +126,32 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
           </Field>
           <Field label="Системный промпт">
             <textarea
+              ref={systemPromptRef}
               className="textarea"
               value={data.systemPrompt}
               onChange={(e) => set({ systemPrompt: e.target.value })}
             />
           </Field>
+          <VariableInserter
+            variableDefs={variableDefs}
+            targetRef={systemPromptRef}
+            value={data.systemPrompt}
+            onChange={(systemPrompt) => set({ systemPrompt })}
+          />
           <Field label="Промпт пользователя">
             <textarea
+              ref={userPromptRef}
               className="textarea"
               value={data.userPrompt}
               onChange={(e) => set({ userPrompt: e.target.value })}
             />
           </Field>
+          <VariableInserter
+            variableDefs={variableDefs}
+            targetRef={userPromptRef}
+            value={data.userPrompt}
+            onChange={(userPrompt) => set({ userPrompt })}
+          />
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
             Если в промпте есть ссылка (http…) — её содержимое подгрузится и передастся ИИ автоматически.
           </p>
@@ -136,6 +183,144 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
         </>
       )}
 
+      {node.type === 'sendToChat' && (
+        <>
+          <Field label="Куда отправить">
+            <select className="select" value={data.targetType} onChange={(e) => set({ targetType: e.target.value })}>
+              <option value="group">Группа или канал</option>
+              <option value="user">Пользователь</option>
+              <option value="variable">Чат из переменной</option>
+              <option value="manual">Указать ID вручную</option>
+            </select>
+          </Field>
+
+          {data.targetType === 'group' && (
+            <>
+              <Field label="Группа / канал">
+                <select
+                  className="select"
+                  value={data.targetChatId}
+                  onChange={(e) => {
+                    const c = (knownChats ?? []).find((x) => x.chat_id === e.target.value);
+                    set({ targetChatId: e.target.value, targetLabel: c?.title || e.target.value });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(knownChats ?? []).map((c) => (
+                    <option key={c.chat_id} value={c.chat_id}>
+                      {c.title || c.chat_id} ({c.type === 'channel' ? 'канал' : 'группа'})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {(knownChats ?? []).length === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+                  Список пуст, пока бота никуда не добавили — появится сам собой (см. «💬 Группы и каналы»).
+                </p>
+              )}
+            </>
+          )}
+
+          {data.targetType === 'user' && (
+            <>
+              <Field label="Пользователь">
+                <select
+                  className="select"
+                  value={data.targetChatId}
+                  onChange={(e) => {
+                    const u = (knownUsers ?? []).find((x) => x.chat_id === e.target.value);
+                    const label = u ? (u.display_name || (u.username ? `@${u.username}` : u.chat_id)) : e.target.value;
+                    set({ targetChatId: e.target.value, targetLabel: label });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(knownUsers ?? []).map((u) => (
+                    <option key={u.chat_id} value={u.chat_id}>
+                      {u.display_name || (u.username ? `@${u.username}` : u.chat_id)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {(knownUsers ?? []).length === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+                  Список пуст, пока никто не написал боту в личку — появится сам собой (см. «👥 Пользователи»).
+                </p>
+              )}
+            </>
+          )}
+
+          {data.targetType === 'variable' && (
+            <>
+              <Field label="Переменная с ID чата">
+                <select
+                  className="select"
+                  value={data.targetVariableId}
+                  onChange={(e) => {
+                    const v = (variableDefs ?? []).find((x) => x.id === e.target.value);
+                    set({
+                      targetVariableId: e.target.value,
+                      targetVariableName: v?.name ?? '',
+                      scope: v?.scope ?? 'personal'
+                    });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(variableDefs ?? []).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.scope === 'global' ? 'общая' : 'личная'})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
+                В переменной должен лежать числовой ID чата — например, сохранённый заранее через
+                «Изменение переменной» (обычно удобнее для общей/global переменной с ID админ-чата).
+              </p>
+            </>
+          )}
+
+          {data.targetType === 'manual' && (
+            <>
+              <Field label="ID чата">
+                <input
+                  ref={sendToChatManualRef}
+                  className="input"
+                  value={data.targetManual}
+                  onChange={(e) => set({ targetManual: e.target.value })}
+                  placeholder="например, -1001234567890"
+                />
+              </Field>
+              <VariableInserter
+                variableDefs={variableDefs}
+                targetRef={sendToChatManualRef}
+                value={data.targetManual}
+                onChange={(targetManual) => set({ targetManual })}
+              />
+            </>
+          )}
+
+          <Field label="Текст сообщения">
+            <textarea
+              ref={sendToChatTextRef}
+              className="textarea"
+              value={data.text}
+              onChange={(e) => set({ text: e.target.value })}
+            />
+          </Field>
+          <VariableInserter
+            variableDefs={variableDefs}
+            targetRef={sendToChatTextRef}
+            value={data.text}
+            onChange={(text) => set({ text })}
+          />
+          <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} />
+          <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.4 }}>
+            Этот блок не ждёт нажатия — сценарий сразу идёт дальше. Кнопки здесь работают для того, кто
+            получит сообщение: нажатие в их чате продолжит сценарий с того места, куда вы его подключите.
+          </p>
+        </>
+      )}
+
       {node.type === 'action' && (
         <>
           <Field label="Тип действия">
@@ -162,12 +347,34 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
                   </select>
                 </Field>
                 <Field label="URL">
-                  <input className="input" value={data.url} onChange={(e) => set({ url: e.target.value })} />
+                  <input
+                    ref={httpUrlRef}
+                    className="input"
+                    value={data.url}
+                    onChange={(e) => set({ url: e.target.value })}
+                  />
                 </Field>
               </div>
+              <VariableInserter
+                variableDefs={variableDefs}
+                targetRef={httpUrlRef}
+                value={data.url}
+                onChange={(url) => set({ url })}
+              />
               <Field label="Тело запроса (JSON)">
-                <textarea className="textarea" value={data.body} onChange={(e) => set({ body: e.target.value })} />
+                <textarea
+                  ref={httpBodyRef}
+                  className="textarea"
+                  value={data.body}
+                  onChange={(e) => set({ body: e.target.value })}
+                />
               </Field>
+              <VariableInserter
+                variableDefs={variableDefs}
+                targetRef={httpBodyRef}
+                value={data.body}
+                onChange={(body) => set({ body })}
+              />
             </>
           )}
           {data.actionType === 'delay' && (
@@ -333,9 +540,22 @@ export default function PropertiesPanel({ node, otherFlows, flowNodes, variableD
             </select>
           </Field>
           {data.op !== 'clear' && (
-            <Field label="Значение">
-              <input className="input" value={data.value} onChange={(e) => set({ value: e.target.value })} />
-            </Field>
+            <>
+              <Field label="Значение">
+                <input
+                  ref={setVariableValueRef}
+                  className="input"
+                  value={data.value}
+                  onChange={(e) => set({ value: e.target.value })}
+                />
+              </Field>
+              <VariableInserter
+                variableDefs={variableDefs}
+                targetRef={setVariableValueRef}
+                value={data.value}
+                onChange={(value) => set({ value })}
+              />
+            </>
           )}
         </>
       )}
