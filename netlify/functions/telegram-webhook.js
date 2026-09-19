@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { runFlow } from '../../src/engine/flowEngine.js';
 import { parseCallbackData } from '../../src/engine/buttonId.js';
 import { formatMessageText } from '../../src/engine/formatText.js';
+import { groupButtonsIntoRows } from '../../src/engine/buttonLayout.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -120,6 +121,13 @@ export const handler = async (event) => {
     }
   } else if (text.startsWith('/')) {
     trigger = { type: 'command', value: text.split(' ')[0] };
+  } else if (text && stateRow?.pending_keyboard?.[text]) {
+    // a reply-keyboard button (под полем ввода) — Telegram gives no
+    // metadata back for these, just the button's own text, so matching
+    // against what we last sent is the only way to tell it apart from the
+    // user just having typed the same words themselves
+    const target = stateRow.pending_keyboard[text];
+    trigger = { type: 'resume', nodeId: target.nodeId, handle: `btn-${target.buttonId}` };
   } else {
     trigger = { type: 'text', value: text };
   }
@@ -131,6 +139,7 @@ export const handler = async (event) => {
     tags: stateRow?.tags ?? [],
     messageIds: stateRow?.message_ids ?? {},
     pendingChoices: stateRow?.pending_choices ?? {},
+    pendingKeyboard: stateRow?.pending_keyboard ?? {},
     globalVariables: bot.global_variables ?? {},
     globalTags: bot.global_tags ?? [],
     // only set for a button press — the message that button lives on, so
@@ -177,6 +186,7 @@ export const handler = async (event) => {
     tags: context.tags,
     message_ids: context.messageIds,
     pending_choices: context.pendingChoices,
+    pending_keyboard: context.pendingKeyboard ?? {},
     display_name: [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || null,
     username: chat.username || null,
     chat_type: chat.type,
@@ -231,12 +241,20 @@ function findPressedButtonText(callbackQuery) {
   return null;
 }
 
-function buildReplyMarkup(buttons) {
+function buildReplyMarkup(buttons, buttonsLayout) {
   if (!buttons?.length) return undefined;
+  const rows = groupButtonsIntoRows(buttons);
+  if (buttonsLayout === 'keyboard') {
+    // reply keyboard: Telegram sends back only the button's plain text,
+    // no metadata — that's what pending_keyboard above is for
+    return { keyboard: rows.map((row) => row.map((b) => ({ text: b.text }))), resize_keyboard: true };
+  }
   return {
-    inline_keyboard: buttons.map((b) => [
-      b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
-    ])
+    inline_keyboard: rows.map((row) =>
+      row.map((b) =>
+        b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
+      )
+    )
   };
 }
 
@@ -251,8 +269,8 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows, botId }) {
       .catch((e) => console.error(`telegram ${method} failed:`, e.message));
 
   return {
-    async sendMessage(chatId, { text, buttons }) {
-      const reply_markup = buildReplyMarkup(buttons);
+    async sendMessage(chatId, { text, buttons, buttonsLayout }) {
+      const reply_markup = buildReplyMarkup(buttons, buttonsLayout);
       const result = await tg('sendMessage', {
         chat_id: chatId,
         text: formatMessageText(text) || ' ',
@@ -271,6 +289,9 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows, botId }) {
     // place (Telegram keeps the same message_id) instead of sending a new
     // one. Returns null on failure so the caller can fall back to
     // sendMessage (e.g. the message is too old, or was already deleted).
+    // Telegram's editMessageText only accepts an inline keyboard, never a
+    // reply keyboard — nodeHandlers.js already avoids calling this for
+    // keyboard-layout messages, so buttons here are always inline.
     async editMessage(chatId, messageId, { text, buttons }) {
       if (!messageId) return null;
       const result = await tg('editMessageText', {
@@ -278,7 +299,7 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows, botId }) {
         message_id: messageId,
         text: formatMessageText(text) || ' ',
         parse_mode: 'HTML',
-        reply_markup: buildReplyMarkup(buttons)
+        reply_markup: buildReplyMarkup(buttons, 'inline')
       });
       if (!result?.ok) {
         console.error('editMessage failed, will fall back to sendMessage:', result?.description);
