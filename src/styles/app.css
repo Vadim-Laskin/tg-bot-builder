@@ -593,8 +593,15 @@
   padding: 2px 10px 10px;
 }
 
-.node__button-row {
-  position: relative; /* handles inside anchor to this row, not the whole node */
+.node__button-grid-row {
+  display: flex;
+  gap: 5px;
+}
+
+.node__button-cell {
+  position: relative; /* handles inside anchor to this cell, not the whole node */
+  flex: 1;
+  min-width: 0;
   display: flex;
 }
 
