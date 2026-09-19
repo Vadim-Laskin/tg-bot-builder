@@ -69,6 +69,7 @@ export const BLOCK_DEFS = {
 
   aiMessage: {
     type: 'aiMessage',
+    label: 'Сообщение с ИИ',
     description: 'Генерирует ответ через Groq по промпту и контексту диалога.',
     category: 'content',
     color: 'var(--wire-ai)',
