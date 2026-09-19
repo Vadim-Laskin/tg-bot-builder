@@ -135,6 +135,8 @@ alter table public.chat_state add column if not exists pending_choices jsonb not
 alter table public.chat_state add column if not exists display_name text;
 alter table public.chat_state add column if not exists username text;
 alter table public.chat_state add column if not exists chat_type text;
+alter table public.chat_state add column if not exists pending_keyboard jsonb not null default '{}'::jsonb;
+alter table public.chat_state add column if not exists pending_keyboard jsonb not null default '{}'::jsonb;
 
 alter table public.chat_state enable row level security;
 
