@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
+import { TAG_COLORS } from '../engine/tagColors.js';
 import VariableInserter from './VariableInserter.jsx';
 
 export default function PropertiesPanel({
@@ -111,7 +112,23 @@ export default function PropertiesPanel({
               отправки нового. Если сюда попали не по кнопке (например, по /start) — отправится новое.
             </p>
           )}
-          <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} />
+          <Field label="Расположение кнопок">
+            <select
+              className="select"
+              value={data.buttonsLayout || 'inline'}
+              onChange={(e) => set({ buttonsLayout: e.target.value })}
+            >
+              <option value="inline">Под сообщением</option>
+              <option value="keyboard">Под полем ввода (клавиатура)</option>
+            </select>
+          </Field>
+          {data.buttonsLayout === 'keyboard' && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
+              В группах и каналах Telegram такую клавиатуру не показывает — там кнопки автоматически
+              станут обычными, под сообщением.
+            </p>
+          )}
+          <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} layout={data.buttonsLayout || 'inline'} />
         </>
       )}
 
@@ -186,7 +203,16 @@ export default function PropertiesPanel({
       {node.type === 'sendToChat' && (
         <>
           <Field label="Куда отправить">
-            <select className="select" value={data.targetType} onChange={(e) => set({ targetType: e.target.value })}>
+            <select
+              className="select"
+              value={data.targetType}
+              onChange={(e) => {
+                const targetType = e.target.value;
+                // groups/channels can only show inline buttons — reset so a
+                // leftover "клавиатура" choice doesn't silently misbehave
+                set(targetType === 'group' ? { targetType, buttonsLayout: 'inline' } : { targetType });
+              }}
+            >
               <option value="group">Группа или канал</option>
               <option value="user">Пользователь</option>
               <option value="variable">Чат из переменной</option>
@@ -313,7 +339,35 @@ export default function PropertiesPanel({
             value={data.text}
             onChange={(text) => set({ text })}
           />
-          <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} />
+          {data.targetType === 'group' ? (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 10px', lineHeight: 1.4 }}>
+              В группах и каналах кнопки бывают только под сообщением.
+            </p>
+          ) : (
+            <>
+              <Field label="Расположение кнопок">
+                <select
+                  className="select"
+                  value={data.buttonsLayout || 'inline'}
+                  onChange={(e) => set({ buttonsLayout: e.target.value })}
+                >
+                  <option value="inline">Под сообщением</option>
+                  <option value="keyboard">Под полем ввода (клавиатура)</option>
+                </select>
+              </Field>
+              {data.buttonsLayout === 'keyboard' && data.targetType !== 'user' && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
+                  Клавиатура работает только в личных сообщениях — если получатель окажется группой или
+                  каналом, кнопки автоматически не отправятся.
+                </p>
+              )}
+            </>
+          )}
+          <ButtonsEditor
+            buttons={data.buttons}
+            onChange={(buttons) => set({ buttons })}
+            layout={data.targetType === 'group' ? 'inline' : data.buttonsLayout || 'inline'}
+          />
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.4 }}>
             Этот блок не ждёт нажатия — сценарий сразу идёт дальше. Кнопки здесь работают для того, кто
             получит сообщение: нажатие в их чате продолжит сценарий с того места, куда вы его подключите.
@@ -616,23 +670,102 @@ function messageNodeLabel(n) {
   return `${icon} ${preview}`;
 }
 
-function ButtonsEditor({ buttons, onChange }) {
+function ButtonsEditor({ buttons, onChange, layout = 'inline' }) {
   const update = (i, patch) => {
     const next = buttons.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
     onChange(next);
   };
   const remove = (i) => onChange(buttons.filter((_, idx) => idx !== i));
-  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback' }]);
+  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback', color: '', newRow: true }]);
+
+  // press-and-hold drag reorder — pointer events so it works the same with
+  // mouse and touch (unlike HTML5 drag-and-drop, which touch mostly ignores)
+  const rowRefs = useRef([]);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+  const draggingRef = useRef(false);
+
+  const startDrag = (i) => (e) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    setDragIndex(i);
+    setOverIndex(i);
+    const onMove = (ev) => {
+      if (!draggingRef.current) return;
+      const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      let closest = i;
+      let closestDist = Infinity;
+      rowRefs.current.forEach((el, idx) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const dist = Math.abs(y - (rect.top + rect.height / 2));
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = idx;
+        }
+      });
+      setOverIndex(closest);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      setDragIndex((from) => {
+        setOverIndex((to) => {
+          if (from !== null && to !== null && from !== to) {
+            const next = buttons.slice();
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            onChange(next);
+          }
+          return null;
+        });
+        return null;
+      });
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
 
   return (
     <Field label="Кнопки">
       <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-2px 0 8px', lineHeight: 1.4 }}>
-        «Обычная» кнопка появляется на блоке со своей точкой — соедините её стрелкой с
-        нужным следующим блоком. «Ссылка» просто открывает URL и не ветвит сценарий.
+        {layout === 'keyboard'
+          ? 'Каждая кнопка — со своей точкой на блоке, соедините стрелкой с нужным следующим блоком.'
+          : '«Обычная» кнопка появляется на блоке со своей точкой — соедините её стрелкой с нужным следующим блоком. «Ссылка» просто открывает URL и не ветвит сценарий.'}
+        {' '}Зажмите ⠿ и потяните, чтобы переставить местами; «в один ряд» — чтобы поставить рядом с предыдущей.
       </p>
       {buttons.map((b, i) => (
-        <div key={b.id ?? i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginBottom: 6 }}>
+        <div
+          key={b.id ?? i}
+          ref={(el) => (rowRefs.current[i] = el)}
+          style={{
+            border: `1px solid ${overIndex === i && dragIndex !== null && dragIndex !== i ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 8,
+            padding: 8,
+            marginBottom: 6,
+            opacity: dragIndex === i ? 0.5 : 1,
+            background: dragIndex === i ? 'var(--surface-2)' : undefined
+          }}
+        >
           <div className="button-row">
+            <span
+              onPointerDown={startDrag(i)}
+              style={{ cursor: 'grab', color: 'var(--text-faint)', padding: '0 4px', touchAction: 'none', userSelect: 'none' }}
+              title="Зажать и перетащить"
+            >
+              ⠿
+            </span>
+            {i > 0 && (
+              <button
+                className="btn btn--sm"
+                style={{ fontSize: 10, padding: '4px 6px', whiteSpace: 'nowrap' }}
+                onClick={() => update(i, { newRow: b.newRow === false ? true : false })}
+                title="Переключить: в новой строке / в один ряд с предыдущей"
+              >
+                {b.newRow === false ? '↔ в один ряд' : '↵ с новой строки'}
+              </button>
+            )}
             <input
               className="input"
               style={{ flex: 1 }}
@@ -640,27 +773,47 @@ function ButtonsEditor({ buttons, onChange }) {
               onChange={(e) => update(i, { text: e.target.value })}
               placeholder="Текст кнопки"
             />
-            <select
-              className="select"
-              style={{ width: 110 }}
-              value={b.kind === 'url' ? 'url' : 'callback'}
-              onChange={(e) => update(i, { kind: e.target.value })}
-            >
-              <option value="callback">Обычная</option>
-              <option value="url">Ссылка</option>
-            </select>
+            {layout !== 'keyboard' && (
+              <select
+                className="select"
+                style={{ width: 110 }}
+                value={b.kind === 'url' ? 'url' : 'callback'}
+                onChange={(e) => update(i, { kind: e.target.value })}
+              >
+                <option value="callback">Обычная</option>
+                <option value="url">Ссылка</option>
+              </select>
+            )}
             <button className="btn btn--sm btn--danger" onClick={() => remove(i)}>
               ✕
             </button>
           </div>
-          {b.kind === 'url' && (
+          {layout !== 'keyboard' && b.kind === 'url' && (
             <input
               className="input"
+              style={{ marginTop: 6 }}
               value={b.url ?? ''}
               onChange={(e) => update(i, { url: e.target.value })}
               placeholder="https://…"
             />
           )}
+          <div className="color-swatches" style={{ marginTop: 8 }}>
+            <button
+              className={`color-swatch${!b.color ? ' is-selected' : ''}`}
+              style={{ background: 'var(--surface-3)', border: '1px dashed var(--border-strong)' }}
+              onClick={() => update(i, { color: '' })}
+              title="Без цвета (только в редакторе)"
+            />
+            {TAG_COLORS.map((c) => (
+              <button
+                key={c}
+                className={`color-swatch${b.color === c ? ' is-selected' : ''}`}
+                style={{ background: c }}
+                onClick={() => update(i, { color: c })}
+                title="Цвет кнопки — виден только в редакторе, Telegram кнопки не красит"
+              />
+            ))}
+          </div>
         </div>
       ))}
       <button className="btn btn--sm" onClick={add}>

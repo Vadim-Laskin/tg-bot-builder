@@ -3,6 +3,7 @@ import { runFlow } from '../engine/flowEngine.js';
 import { createMockApi } from '../engine/mockApi.js';
 import { parseCallbackData } from '../engine/buttonId.js';
 import { formatMessageText } from '../engine/formatText.js';
+import { groupButtonsIntoRows } from '../engine/buttonLayout.js';
 
 let itemSeq = 0;
 const nextItemId = () => `item-${++itemSeq}`;
@@ -18,6 +19,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     tags: [],
     globalVariables: {},
     globalTags: [],
+    pendingKeyboard: {},
     chatId: 'preview',
     chatType: 'private'
   });
@@ -52,7 +54,16 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
     contextRef.current.lastMessage = text;
     contextRef.current.sourceMessageId = undefined; // plain text/command — no message to edit
-    const trigger = text.startsWith('/') ? { type: 'command', value: text } : { type: 'text', value: text };
+
+    let trigger;
+    const pending = contextRef.current.pendingKeyboard?.[text];
+    if (!text.startsWith('/') && pending) {
+      // matches a currently-shown "under keyboard" button by its text,
+      // same as the real bot does — resumes like any other button press
+      trigger = { type: 'resume', nodeId: pending.nodeId, handle: `btn-${pending.buttonId}` };
+    } else {
+      trigger = text.startsWith('/') ? { type: 'command', value: text } : { type: 'text', value: text };
+    }
 
     await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
   };
@@ -61,6 +72,22 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     if (button.kind === 'url') return; // just a link in real Telegram, nothing to simulate
 
     push({ kind: 'user', text: `▸ ${button.text}` });
+
+    if (button.kind === 'keyboard') {
+      const target = contextRef.current.pendingKeyboard?.[button.text];
+      if (!target) {
+        push({ kind: 'log', text: 'Эта кнопка клавиатуры устарела (её заменили новой).' });
+        return;
+      }
+      await runFlow({
+        graph,
+        trigger: { type: 'resume', nodeId: target.nodeId, handle: `btn-${target.buttonId}` },
+        context: contextRef.current,
+        api: makeApi()
+      });
+      return;
+    }
+
     const parsed = parseCallbackData(button.callbackData);
     if (!parsed) {
       push({ kind: 'log', text: 'Эта кнопка ни к чему не подключена.' });
@@ -102,6 +129,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       tags: [],
       globalVariables: {},
       globalTags: [],
+      pendingKeyboard: {},
       chatId: 'preview',
       chatType: chatKind
     };
@@ -151,16 +179,24 @@ export default function TestPanel({ graph, allFlows, onClose }) {
               )}
               {it.buttons?.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-                  {it.buttons.map((b, bi) => (
-                    <button
-                      key={bi}
-                      className="test-msg__button"
-                      onClick={() => pressButton(it, b)}
-                      title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
-                    >
-                      {b.kind === 'url' ? '🔗 ' : ''}
-                      {b.text}
-                    </button>
+                  {groupButtonsIntoRows(it.buttons).map((row, ri) => (
+                    <div key={ri} style={{ display: 'flex', gap: 4 }}>
+                      {row.map((b) => {
+                        const bi = it.buttons.indexOf(b);
+                        return (
+                          <button
+                            key={bi}
+                            className="test-msg__button"
+                            style={{ flex: 1 }}
+                            onClick={() => pressButton(it, b)}
+                            title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
+                          >
+                            {b.kind === 'url' ? '🔗 ' : b.kind === 'keyboard' ? '⌨️ ' : ''}
+                            {b.text}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ))}
                 </div>
               )}
