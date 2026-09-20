@@ -193,6 +193,33 @@
   font-family: var(--font-mono);
 }
 
+.chip-textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  padding: 8px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.chip-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.chip-textarea:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
 /* ---------- bot grid ---------- */
 
 .bot-grid {
