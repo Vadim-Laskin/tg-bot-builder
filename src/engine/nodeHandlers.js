@@ -122,6 +122,12 @@ const handlers = {
       } else {
         api.log?.('Удалить сообщение: для этого чата у выбранного блока ещё нет отправленного сообщения.');
       }
+    } else if (node.data.actionType === 'deleteUserMessage') {
+      if (context.incomingMessageId) {
+        await api.deleteMessage?.(context.chatId, context.incomingMessageId);
+      } else {
+        api.log?.('Удалить сообщение пользователя: сюда попали не из-за нового сообщения, удалять нечего.');
+      }
     }
     return { next: 'default' };
   },

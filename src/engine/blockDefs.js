@@ -98,7 +98,7 @@ export const BLOCK_DEFS = {
     color: 'var(--wire-action)',
     ports: { in: true, out: true },
     defaultData: {
-      actionType: 'http', // http | typing | delay | deleteMessage
+      actionType: 'http', // http | typing | delay | deleteMessage | deleteUserMessage
       method: 'POST',
       url: '',
       body: '',
