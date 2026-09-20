@@ -153,6 +153,10 @@ export const handler = async (event) => {
     // an "edit previous message" block knows what to edit. Absent for
     // /start or plain-text triggers, since there's nothing to edit yet.
     sourceMessageId: update.callback_query?.message?.message_id,
+    // the user's own incoming message that triggered this run (unset for
+    // button presses, resumes, or channel posts with no author message) —
+    // used by Действие → "Удалить сообщение пользователя"
+    incomingMessageId: update.message?.message_id,
     // 'private' | 'group' | 'supergroup' | 'channel' — used by the
     // "источник сообщения" condition operator
     chatType: message?.chat?.type
