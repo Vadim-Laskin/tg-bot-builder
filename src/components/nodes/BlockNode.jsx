@@ -2,6 +2,7 @@ import { Handle, Position } from 'reactflow';
 import { BLOCK_DEFS } from '../../engine/blockDefs.js';
 import { getButtonId } from '../../engine/buttonId.js';
 import { groupButtonsIntoRows } from '../../engine/buttonLayout.js';
+import { BUTTON_STYLES } from '../../engine/buttonStyles.js';
 
 function summarize(type, data) {
   switch (type) {
@@ -94,11 +95,12 @@ export default function BlockNode({ id, type, data, selected }) {
               {row.map((b) => {
                 const i = buttons.indexOf(b);
                 const wireable = layout === 'keyboard' || b.kind !== 'url';
+                const styleColor = BUTTON_STYLES.find((s) => s.value === (b.style || ''))?.color;
                 return (
                   <div className="node__button-cell" key={getButtonId(b, i)}>
                     <span
                       className="node__button-chip"
-                      style={b.color ? { borderLeft: `3px solid ${b.color}` } : undefined}
+                      style={styleColor ? { background: styleColor, color: '#fff', borderColor: styleColor } : undefined}
                     >
                       {layout === 'keyboard' ? '⌨️ ' : b.kind === 'url' ? '🔗 ' : ''}
                       {b.text || 'Кнопка'}
