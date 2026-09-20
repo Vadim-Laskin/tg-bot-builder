@@ -3,6 +3,7 @@ import { BLOCK_DEFS } from '../../engine/blockDefs.js';
 import { getButtonId } from '../../engine/buttonId.js';
 import { groupButtonsIntoRows } from '../../engine/buttonLayout.js';
 import { BUTTON_STYLES } from '../../engine/buttonStyles.js';
+import ChipText from '../ChipText.jsx';
 
 function summarize(type, data) {
   switch (type) {
@@ -86,7 +87,9 @@ export default function BlockNode({ id, type, data, selected }) {
         <span className="node__title">{def.label}</span>
       </div>
 
-      <div className={`node__body${body ? '' : ' node__body--empty'}`}>{body || 'Не настроено'}</div>
+      <div className={`node__body${body ? '' : ' node__body--empty'}`}>
+        {body ? <ChipText text={body} /> : 'Не настроено'}
+      </div>
 
       {supportsButtons && buttons.length > 0 && (
         <div className="node__buttons">

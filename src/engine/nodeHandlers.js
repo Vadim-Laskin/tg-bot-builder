@@ -23,6 +23,18 @@ const handlers = {
     const messageId = await sendOrEditMessage(node, context, api, { text, buttons, buttonsLayout: layout });
     rememberMessageId(context, node.id, messageId);
 
+    if (node.data.waitForReply && node.data.captureVariableName) {
+      // pause for the user's next free-text message, whatever it is —
+      // the webhook checks this before command/text matching and writes
+      // the reply straight into the chosen variable, then resumes here
+      context.pendingCapture = {
+        nodeId: node.id,
+        variableName: node.data.captureVariableName,
+        scope: node.data.captureScope || 'personal'
+      };
+      return { next: 'stop' };
+    }
+
     // Any buttons (inline callback OR keyboard) mean the flow should pause
     // and wait for a press — it resumes later from that specific button's
     // handle (see flowEngine.js's `resume` trigger), not by continuing on.

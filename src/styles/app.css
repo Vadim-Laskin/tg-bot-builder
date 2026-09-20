@@ -1158,6 +1158,21 @@
   border-radius: 999px;
 }
 
+/* {{variable}} rendered as a chip instead of raw braces — same turquoise
+   as the variable registry (VARIABLE_COLOR in tagColors.js) */
+.var-chip {
+  display: inline-block;
+  border: 1.5px solid var(--wire-ai);
+  color: var(--wire-ai);
+  background: rgba(41, 199, 172, 0.1);
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 0.92em;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
 .registry-add {
   display: flex;
   flex-direction: column;

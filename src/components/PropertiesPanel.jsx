@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import { BUTTON_STYLES } from '../engine/buttonStyles.js';
 import VariableInserter from './VariableInserter.jsx';
+import ChipText from './ChipText.jsx';
 
 export default function PropertiesPanel({
   node,
@@ -98,6 +99,11 @@ export default function PropertiesPanel({
             value={data.text}
             onChange={(text) => set({ text })}
           />
+          {data.text && (
+            <p style={{ fontSize: 12, lineHeight: 1.6, margin: '-6px 0 14px', color: 'var(--text-dim)' }}>
+              <ChipText text={data.text} />
+            </p>
+          )}
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginBottom: 14 }}>
             <input
               type="checkbox"
@@ -112,6 +118,50 @@ export default function PropertiesPanel({
               отправки нового. Если сюда попали не по кнопке (например, по /start) — отправится новое.
             </p>
           )}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={!!data.waitForReply}
+              onChange={(e) => set({ waitForReply: e.target.checked })}
+            />
+            ⏳ Ждать ответ пользователя
+          </label>
+          {data.waitForReply && (
+            <>
+              <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 10px', lineHeight: 1.4 }}>
+                Сценарий остановится здесь и продолжится, как только пользователь напишет что угодно —
+                это и запишется в переменную.
+              </p>
+              <Field label="Записать ответ в переменную">
+                <select
+                  className="select"
+                  value={data.captureVariableId}
+                  onChange={(e) => {
+                    const v = (variableDefs ?? []).find((x) => x.id === e.target.value);
+                    set({
+                      captureVariableId: e.target.value,
+                      captureVariableName: v?.name ?? '',
+                      captureScope: v?.scope ?? 'personal'
+                    });
+                  }}
+                >
+                  <option value="">— выбрать —</option>
+                  {(variableDefs ?? []).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.scope === 'global' ? 'общая' : 'личная'})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {(variableDefs ?? []).length === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
+                  Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+                </p>
+              )}
+            </>
+          )}
+
           <Field label="Расположение кнопок">
             <select
               className="select"
@@ -339,6 +389,11 @@ export default function PropertiesPanel({
             value={data.text}
             onChange={(text) => set({ text })}
           />
+          {data.text && (
+            <p style={{ fontSize: 12, lineHeight: 1.6, margin: '-6px 0 14px', color: 'var(--text-dim)' }}>
+              <ChipText text={data.text} />
+            </p>
+          )}
           {data.targetType === 'group' ? (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 10px', lineHeight: 1.4 }}>
               В группах и каналах кнопки бывают только под сообщением.

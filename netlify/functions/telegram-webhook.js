@@ -92,6 +92,7 @@ export const handler = async (event) => {
 
   let trigger;
   let quickReplyText; // set when the pressed button is an AI-generated quick reply
+  let capturedReply; // set when this message fills a "wait for reply" capture
   if (callbackData) {
     // buttons made in the editor encode which block + which button they
     // are, so a press resumes the flow from exactly that point — there's
@@ -119,6 +120,12 @@ export const handler = async (event) => {
     } else {
       trigger = { type: 'resume', nodeId: parsed.nodeId, handle: `btn-${parsed.buttonId}` };
     }
+  } else if (text && stateRow?.pending_capture) {
+    // "Ждать ответ пользователя" on a Сообщение block — whatever the user
+    // sends next fills that variable, even if it looks like a command
+    const cap = stateRow.pending_capture;
+    capturedReply = cap;
+    trigger = { type: 'resume', nodeId: cap.nodeId, handle: 'default' };
   } else if (text.startsWith('/')) {
     trigger = { type: 'command', value: text.split(' ')[0] };
   } else if (text && stateRow?.pending_keyboard?.[text]) {
@@ -150,6 +157,11 @@ export const handler = async (event) => {
     // "источник сообщения" condition operator
     chatType: message?.chat?.type
   };
+
+  if (capturedReply) {
+    const bag = capturedReply.scope === 'global' ? context.globalVariables : context.variables;
+    bag[capturedReply.variableName] = text;
+  }
 
   const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
   if (!mainFlow) return { statusCode: 200, body: 'bot has no flow yet' };
@@ -187,6 +199,7 @@ export const handler = async (event) => {
     message_ids: context.messageIds,
     pending_choices: context.pendingChoices,
     pending_keyboard: context.pendingKeyboard ?? {},
+    pending_capture: context.pendingCapture ?? null,
     display_name: [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || null,
     username: chat.username || null,
     chat_type: chat.type,

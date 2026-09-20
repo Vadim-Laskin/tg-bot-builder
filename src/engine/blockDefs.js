@@ -43,8 +43,12 @@ export const BLOCK_DEFS = {
     defaultData: {
       text: 'Привет! 👋',
       buttonsLayout: 'inline', // inline (под сообщением) | keyboard (под полем ввода) — групп/каналы всегда получают inline, решается автоматически
-      buttons: [], // [{ id, text, kind: 'callback' | 'url', url?, color? }] — color is editor-only, Telegram has no button colors
-      editPrevious: false // edit the message that had the pressed button, instead of sending a new one
+      buttons: [], // [{ id, text, kind: 'callback' | 'url', url?, style? }] — style: '' | 'primary' | 'success' | 'danger' (real Telegram button colors, Bot API 9.4+)
+      editPrevious: false, // edit the message that had the pressed button, instead of sending a new one
+      waitForReply: false, // pause and capture the user's next free-text message
+      captureVariableId: '',
+      captureVariableName: '',
+      captureScope: 'personal'
     }
   },
 
