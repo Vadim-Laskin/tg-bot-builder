@@ -4,6 +4,7 @@ import { createMockApi } from '../engine/mockApi.js';
 import { parseCallbackData } from '../engine/buttonId.js';
 import { formatMessageText } from '../engine/formatText.js';
 import { groupButtonsIntoRows } from '../engine/buttonLayout.js';
+import { BUTTON_STYLES } from '../engine/buttonStyles.js';
 
 let itemSeq = 0;
 const nextItemId = () => `item-${++itemSeq}`;
@@ -183,11 +184,16 @@ export default function TestPanel({ graph, allFlows, onClose }) {
                     <div key={ri} style={{ display: 'flex', gap: 4 }}>
                       {row.map((b) => {
                         const bi = it.buttons.indexOf(b);
+                        const styleColor = BUTTON_STYLES.find((s) => s.value === (b.style || ''))?.color;
                         return (
                           <button
                             key={bi}
                             className="test-msg__button"
-                            style={{ flex: 1 }}
+                            style={
+                              styleColor
+                                ? { flex: 1, background: styleColor, color: '#fff', borderColor: styleColor }
+                                : { flex: 1 }
+                            }
                             onClick={() => pressButton(it, b)}
                             title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
                           >

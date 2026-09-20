@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
-import { TAG_COLORS } from '../engine/tagColors.js';
+import { BUTTON_STYLES } from '../engine/buttonStyles.js';
 import VariableInserter from './VariableInserter.jsx';
 
 export default function PropertiesPanel({
@@ -676,7 +676,7 @@ function ButtonsEditor({ buttons, onChange, layout = 'inline' }) {
     onChange(next);
   };
   const remove = (i) => onChange(buttons.filter((_, idx) => idx !== i));
-  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback', color: '', newRow: true }]);
+  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback', style: '', newRow: true }]);
 
   // press-and-hold drag reorder — pointer events so it works the same with
   // mouse and touch (unlike HTML5 drag-and-drop, which touch mostly ignores)
@@ -798,19 +798,17 @@ function ButtonsEditor({ buttons, onChange, layout = 'inline' }) {
             />
           )}
           <div className="color-swatches" style={{ marginTop: 8 }}>
-            <button
-              className={`color-swatch${!b.color ? ' is-selected' : ''}`}
-              style={{ background: 'var(--surface-3)', border: '1px dashed var(--border-strong)' }}
-              onClick={() => update(i, { color: '' })}
-              title="Без цвета (только в редакторе)"
-            />
-            {TAG_COLORS.map((c) => (
+            {BUTTON_STYLES.map((s) => (
               <button
-                key={c}
-                className={`color-swatch${b.color === c ? ' is-selected' : ''}`}
-                style={{ background: c }}
-                onClick={() => update(i, { color: c })}
-                title="Цвет кнопки — виден только в редакторе, Telegram кнопки не красит"
+                key={s.value}
+                className={`color-swatch${(b.style || '') === s.value ? ' is-selected' : ''}`}
+                style={
+                  s.color
+                    ? { background: s.color }
+                    : { background: 'var(--surface-3)', border: '1px dashed var(--border-strong)' }
+                }
+                onClick={() => update(i, { style: s.value })}
+                title={`${s.label} — реальный цвет кнопки в Telegram`}
               />
             ))}
           </div>
