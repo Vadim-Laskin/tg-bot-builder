@@ -247,13 +247,18 @@ function buildReplyMarkup(buttons, buttonsLayout) {
   if (buttonsLayout === 'keyboard') {
     // reply keyboard: Telegram sends back only the button's plain text,
     // no metadata — that's what pending_keyboard above is for
-    return { keyboard: rows.map((row) => row.map((b) => ({ text: b.text }))), resize_keyboard: true };
+    return {
+      keyboard: rows.map((row) => row.map((b) => ({ text: b.text, style: b.style || undefined }))),
+      resize_keyboard: true
+    };
   }
   return {
     inline_keyboard: rows.map((row) =>
-      row.map((b) =>
-        b.kind === 'url' ? { text: b.text, url: b.url || 'https://t.me' } : { text: b.text, callback_data: b.callbackData }
-      )
+      row.map((b) => ({
+        text: b.text,
+        style: b.style || undefined,
+        ...(b.kind === 'url' ? { url: b.url || 'https://t.me' } : { callback_data: b.callbackData })
+      }))
     )
   };
 }
