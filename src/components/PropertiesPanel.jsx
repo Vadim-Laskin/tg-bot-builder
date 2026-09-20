@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import { BUTTON_STYLES } from '../engine/buttonStyles.js';
 import VariableInserter from './VariableInserter.jsx';
-import ChipText from './ChipText.jsx';
+import ChipTextarea from './ChipTextarea.jsx';
 
 export default function PropertiesPanel({
   node,
@@ -17,13 +17,11 @@ export default function PropertiesPanel({
   onDelete,
   onCloseMobile
 }) {
-  const messageTextRef = useRef(null);
   const systemPromptRef = useRef(null);
   const userPromptRef = useRef(null);
   const httpUrlRef = useRef(null);
   const httpBodyRef = useRef(null);
   const setVariableValueRef = useRef(null);
-  const sendToChatTextRef = useRef(null);
   const sendToChatManualRef = useRef(null);
 
   if (!node) {
@@ -86,25 +84,9 @@ export default function PropertiesPanel({
       {node.type === 'message' && (
         <>
           <Field label="Текст сообщения">
-            <textarea
-              ref={messageTextRef}
-              className="textarea"
-              value={data.text}
-              onChange={(e) => set({ text: e.target.value })}
-            />
+            <ChipTextarea value={data.text} onChange={(text) => set({ text })} variableDefs={variableDefs} />
           </Field>
-          <VariableInserter
-            variableDefs={variableDefs}
-            targetRef={messageTextRef}
-            value={data.text}
-            onChange={(text) => set({ text })}
-          />
-          {data.text && (
-            <p style={{ fontSize: 12, lineHeight: 1.6, margin: '-6px 0 14px', color: 'var(--text-dim)' }}>
-              <ChipText text={data.text} />
-            </p>
-          )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginBottom: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginBottom: 14, marginTop: 14 }}>
             <input
               type="checkbox"
               checked={!!data.editPrevious}
@@ -376,24 +358,8 @@ export default function PropertiesPanel({
           )}
 
           <Field label="Текст сообщения">
-            <textarea
-              ref={sendToChatTextRef}
-              className="textarea"
-              value={data.text}
-              onChange={(e) => set({ text: e.target.value })}
-            />
+            <ChipTextarea value={data.text} onChange={(text) => set({ text })} variableDefs={variableDefs} />
           </Field>
-          <VariableInserter
-            variableDefs={variableDefs}
-            targetRef={sendToChatTextRef}
-            value={data.text}
-            onChange={(text) => set({ text })}
-          />
-          {data.text && (
-            <p style={{ fontSize: 12, lineHeight: 1.6, margin: '-6px 0 14px', color: 'var(--text-dim)' }}>
-              <ChipText text={data.text} />
-            </p>
-          )}
           {data.targetType === 'group' ? (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 10px', lineHeight: 1.4 }}>
               В группах и каналах кнопки бывают только под сообщением.
@@ -441,7 +407,8 @@ export default function PropertiesPanel({
               <option value="http">HTTP-запрос</option>
               <option value="typing">Индикатор «печатает»</option>
               <option value="delay">Пауза (мс)</option>
-              <option value="deleteMessage">Удалить сообщение</option>
+              <option value="deleteMessage">Удалить сообщение бота</option>
+              <option value="deleteUserMessage">Удалить сообщение пользователя</option>
             </select>
           </Field>
           {data.actionType === 'http' && (
@@ -514,6 +481,14 @@ export default function PropertiesPanel({
                 этому пользователю тот блок ещё не отправлял сообщение — действие ничего не сделает.
               </p>
             </>
+          )}
+          {data.actionType === 'deleteUserMessage' && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0, lineHeight: 1.4 }}>
+              Удаляет то сообщение, которое пользователь только что прислал (то, из-за которого сценарий
+              сюда попал). В личных чатах у бота есть право удалять входящие сообщения; в группах и
+              каналах — только если бот администратор с правом удаления сообщений. Если сюда попали не
+              из-за нового сообщения (например, по кнопке или таймеру) — удалять нечего, ничего не произойдёт.
+            </p>
           )}
         </>
       )}

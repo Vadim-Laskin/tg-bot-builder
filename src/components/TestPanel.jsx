@@ -50,20 +50,32 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
   const send = async (text) => {
     if (!text.trim()) return;
-    push({ kind: 'user', text });
+    const userItemId = nextItemId();
+    setItems((s) => [...s, { id: userItemId, kind: 'user', text }]);
     setInput('');
 
     contextRef.current.lastMessage = text;
     contextRef.current.sourceMessageId = undefined; // plain text/command — no message to edit
+    contextRef.current.incomingMessageId = userItemId; // lets "Удалить сообщение пользователя" find this bubble
 
     let trigger;
-    const pending = contextRef.current.pendingKeyboard?.[text];
-    if (!text.startsWith('/') && pending) {
-      // matches a currently-shown "under keyboard" button by its text,
-      // same as the real bot does — resumes like any other button press
-      trigger = { type: 'resume', nodeId: pending.nodeId, handle: `btn-${pending.buttonId}` };
+    const capture = contextRef.current.pendingCapture;
+    if (capture) {
+      // "Ждать ответ пользователя" on a Сообщение block — whatever was
+      // typed fills that variable, even if it looks like a command
+      const bag = capture.scope === 'global' ? contextRef.current.globalVariables : contextRef.current.variables;
+      bag[capture.variableName] = text;
+      contextRef.current.pendingCapture = null;
+      trigger = { type: 'resume', nodeId: capture.nodeId, handle: 'default' };
+    } else if (text.startsWith('/')) {
+      trigger = { type: 'command', value: text };
     } else {
-      trigger = text.startsWith('/') ? { type: 'command', value: text } : { type: 'text', value: text };
+      const pending = contextRef.current.pendingKeyboard?.[text];
+      trigger = pending
+        ? // matches a currently-shown "under keyboard" button by its text,
+          // same as the real bot does — resumes like any other button press
+          { type: 'resume', nodeId: pending.nodeId, handle: `btn-${pending.buttonId}` }
+        : { type: 'text', value: text };
     }
 
     await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
@@ -73,6 +85,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     if (button.kind === 'url') return; // just a link in real Telegram, nothing to simulate
 
     push({ kind: 'user', text: `▸ ${button.text}` });
+    contextRef.current.incomingMessageId = undefined; // a button press isn't a new user message to delete
 
     if (button.kind === 'keyboard') {
       const target = contextRef.current.pendingKeyboard?.[button.text];
