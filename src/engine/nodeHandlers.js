@@ -236,12 +236,18 @@ function buildButtons(nodeId, rawButtons, layout, context) {
     context.pendingKeyboard = Object.fromEntries(
       rawButtons.map((b, i) => [b.text, { nodeId, buttonId: getButtonId(b, i) }])
     );
-    return rawButtons.map((b) => ({ text: b.text, kind: 'keyboard' }));
+    return rawButtons.map((b) => ({ text: b.text, kind: 'keyboard', newRow: b.newRow, style: b.style }));
   }
   return rawButtons.map((b, i) =>
     b.kind === 'url'
-      ? { text: b.text, kind: 'url', url: b.url }
-      : { text: b.text, kind: 'callback', callbackData: buildCallbackData(nodeId, getButtonId(b, i)) }
+      ? { text: b.text, kind: 'url', url: b.url, newRow: b.newRow, style: b.style }
+      : {
+          text: b.text,
+          kind: 'callback',
+          callbackData: buildCallbackData(nodeId, getButtonId(b, i)),
+          newRow: b.newRow,
+          style: b.style
+        }
   );
 }
 
