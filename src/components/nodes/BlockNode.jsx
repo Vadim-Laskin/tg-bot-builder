@@ -27,6 +27,7 @@ function summarize(type, data) {
     case 'action':
       if (data.actionType === 'http') return `${data.method} ${data.url || '…'}`;
       if (data.actionType === 'deleteMessage') return data.targetNodeId ? 'удалить сообщение блока…' : 'блок не выбран';
+      if (data.actionType === 'deleteUserMessage') return 'удалить сообщение пользователя';
       return data.actionType;
     case 'condition':
       if (data.operator === 'hasTag' || data.operator === 'notHasTag') {
