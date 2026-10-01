@@ -1,19 +1,13 @@
+import { useState } from 'react';
 import { useBotStore } from '../store/useBotStore.js';
+import NewBotWizard from './NewBotWizard.jsx';
 
 export default function BotList({ onOpenBot }) {
   const bots = useBotStore((s) => s.bots);
-  const createBot = useBotStore((s) => s.createBot);
   const deleteBot = useBotStore((s) => s.deleteBot);
   const setActiveBot = useBotStore((s) => s.setActiveBot);
 
-  const handleCreate = async () => {
-    const name = prompt('Название бота:', 'Мой бот');
-    if (!name) return;
-    const id = await createBot(name);
-    if (!id) return;
-    setActiveBot(id);
-    onOpenBot();
-  };
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const open = (id) => {
     setActiveBot(id);
@@ -30,7 +24,7 @@ export default function BotList({ onOpenBot }) {
       </div>
 
       <div className="bot-grid">
-        <div className="bot-card bot-card--new" onClick={handleCreate}>
+        <div className="bot-card bot-card--new" onClick={() => setWizardOpen(true)}>
           + Новый бот
         </div>
         {bots.map((bot) => (
@@ -54,6 +48,16 @@ export default function BotList({ onOpenBot }) {
           </div>
         ))}
       </div>
+
+      {wizardOpen && (
+        <NewBotWizard
+          onClose={() => setWizardOpen(false)}
+          onDone={(id) => {
+            setWizardOpen(false);
+            open(id);
+          }}
+        />
+      )}
     </div>
   );
 }

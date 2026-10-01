@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabaseClient.js';
+import { connectWebhook as registerWebhook } from '../lib/webhook.js';
 
 export default function SecretsForm({ bot, onSave, onClose }) {
   const [token, setToken] = useState(bot.telegramToken);
@@ -23,31 +23,8 @@ export default function SecretsForm({ bot, onSave, onClose }) {
       await onSave(bot.id, { telegramToken: token, groqApiKey: groq });
     }
 
-    try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      const res = await fetch('/.netlify/functions/set-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ botId: bot.id })
-      });
-      const data = await res.json();
-
-      setWebhookStatus(
-        res.ok
-          ? { ok: true, message: 'Готово — бот подключён, пишите ему в Telegram.' }
-          : { ok: false, message: data.error || data.description || 'Не удалось подключить вебхук.' }
-      );
-    } catch (e) {
-      setWebhookStatus({ ok: false, message: 'Не удалось обратиться к серверу: ' + e.message });
-    } finally {
-      setConnecting(false);
-    }
+    setWebhookStatus(await registerWebhook(bot.id));
+    setConnecting(false);
   };
 
   return (
