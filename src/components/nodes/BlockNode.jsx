@@ -1,9 +1,8 @@
-import { Handle, Position } from 'reactflow';
+import { useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { BLOCK_DEFS } from '../../engine/blockDefs.js';
-import { getButtonId } from '../../engine/buttonId.js';
-import { groupButtonsIntoRows } from '../../engine/buttonLayout.js';
-import { BUTTON_STYLES } from '../../engine/buttonStyles.js';
 import ChipText from '../ChipText.jsx';
+import NodeButtons from './NodeButtons.jsx';
 
 function summarize(type, data) {
   switch (type) {
@@ -70,14 +69,23 @@ function symbolForOperator(op) {
 
 export default function BlockNode({ id, type, data, selected }) {
   const def = BLOCK_DEFS[type];
-  if (!def) return null;
-  const body = summarize(type, data);
   const supportsButtons = type === 'message' || type === 'sendToChat';
   const buttons = supportsButtons ? data.buttons ?? [] : [];
-  const layout = data.buttonsLayout || 'inline';
-  // keyboard-layout buttons are always wireable (no such thing as a
-  // "keyboard URL button" in Telegram); inline url buttons never are
+  // в группах и каналах Telegram показывает только inline-кнопки
+  const layout = type === 'sendToChat' && data.targetType === 'group' ? 'inline' : data.buttonsLayout || 'inline';
+  // keyboard-кнопки всегда подключаемы (URL-кнопок у клавиатуры нет); inline-URL — никогда
   const wireableButtons = layout === 'keyboard' ? buttons : buttons.filter((b) => b.kind !== 'url');
+
+  // после перестановки/правки точки кнопок сдвигаются без смены размера
+  // блока — React Flow надо сказать пересчитать, где теперь стрелки
+  const updateInternals = useUpdateNodeInternals();
+  const buttonsSig = buttons.map((b) => `${b.id}:${b.newRow === false ? 0 : 1}:${b.kind === 'url' ? 'u' : 'c'}`).join('|') + layout;
+  useEffect(() => {
+    updateInternals(id);
+  }, [buttonsSig, id, updateInternals]);
+
+  if (!def) return null;
+  const body = summarize(type, data);
 
   return (
     <div className={`node${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
@@ -92,38 +100,7 @@ export default function BlockNode({ id, type, data, selected }) {
         {body ? <ChipText text={body} /> : 'Не настроено'}
       </div>
 
-      {supportsButtons && buttons.length > 0 && (
-        <div className="node__buttons">
-          {groupButtonsIntoRows(buttons).map((row, ri) => (
-            <div className="node__button-grid-row" key={ri}>
-              {row.map((b) => {
-                const i = buttons.indexOf(b);
-                const wireable = layout === 'keyboard' || b.kind !== 'url';
-                const styleColor = BUTTON_STYLES.find((s) => s.value === (b.style || ''))?.color;
-                return (
-                  <div className="node__button-cell" key={getButtonId(b, i)}>
-                    <span
-                      className="node__button-chip"
-                      style={styleColor ? { background: styleColor, color: '#fff', borderColor: styleColor } : undefined}
-                    >
-                      {layout === 'keyboard' ? '⌨️ ' : b.kind === 'url' ? '🔗 ' : ''}
-                      {b.text || 'Кнопка'}
-                    </span>
-                    {wireable && (
-                      <Handle
-                        type="source"
-                        position={Position.Right}
-                        id={`btn-${getButtonId(b, i)}`}
-                        className="node__button-handle"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
+      {supportsButtons && <NodeButtons nodeId={id} buttons={buttons} layout={layout} />}
 
       {type === 'message' && buttons.length > 0 && wireableButtons.length === 0 && (
         // every button is a plain URL button — nothing to branch on, so the
