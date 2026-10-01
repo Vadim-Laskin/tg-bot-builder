@@ -1550,3 +1550,377 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- кнопки на блоке: как в Telegram ---------- */
+
+.tg-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 10px 10px;
+}
+
+.tg-buttons--kbd {
+  margin: 0 8px 8px;
+  padding: 6px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.tg-row {
+  display: flex;
+  gap: 4px;
+}
+
+.tg-btn {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--tg-default);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none; /* палец не должен прокручивать/панорамировать, пока держим кнопку */
+  transition: filter 0.12s ease, opacity 0.12s ease;
+}
+
+.tg-btn:hover {
+  filter: brightness(1.1);
+}
+
+.tg-btn__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-btn__link {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+.tg-btn--primary {
+  background: var(--tg-primary);
+}
+.tg-btn--success {
+  background: var(--tg-success);
+}
+.tg-btn--danger {
+  background: var(--tg-danger);
+}
+
+/* клавиатура под полем ввода: светлые «клавиши», цветные — как у inline */
+.tg-btn--kbd {
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+.tg-btn--kbd.tg-btn--primary,
+.tg-btn--kbd.tg-btn--success,
+.tg-btn--kbd.tg-btn--danger {
+  color: #fff;
+}
+.tg-btn--kbd.tg-btn--primary {
+  background: var(--tg-primary);
+}
+.tg-btn--kbd.tg-btn--success {
+  background: var(--tg-success);
+}
+.tg-btn--kbd.tg-btn--danger {
+  background: var(--tg-danger);
+}
+
+.tg-btn.is-editing {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.tg-btn.is-dragging {
+  opacity: 0.3;
+}
+
+.tg-ghost {
+  position: fixed;
+  z-index: 300;
+  pointer-events: none;
+  flex: none;
+  opacity: 0.95;
+  transform: scale(1.06);
+  box-shadow: var(--shadow-2);
+}
+
+.tg-add {
+  height: 28px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tg-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* куда встанет переносимая кнопка */
+.node__button-cell.drop-before::before,
+.node__button-cell.drop-after::before,
+.node__button-cell.drop-above::before,
+.node__button-cell.drop-below::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.node__button-cell.drop-before::before {
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.node__button-cell.drop-after::before {
+  right: -4px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.node__button-cell.drop-above::before {
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.node__button-cell.drop-below::before {
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+/* ---------- настройки кнопки (тап по кнопке на блоке) ---------- */
+
+.button-editor .field {
+  margin-bottom: 18px;
+}
+
+.button-editor .field__label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.button-editor .input,
+.button-editor .select {
+  height: 46px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.button-editor__back {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button-editor__back:hover {
+  color: var(--text);
+}
+
+.bb-swatches {
+  display: flex;
+  gap: 10px;
+}
+
+.bb-swatch {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bb-swatch.is-selected {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+}
+
+.bb-target {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bb-target--empty {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.bb-target__main,
+.bb-picker__item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bb-target__icon {
+  font-size: 20px;
+  flex: 0 0 auto;
+  width: 24px;
+  text-align: center;
+}
+
+.bb-target__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bb-target__title {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bb-target__sub {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.bb-target__clear {
+  width: 52px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text-faint);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.bb-target__clear:hover {
+  color: var(--danger);
+}
+
+.bb-delete {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bb-delete:hover {
+  filter: brightness(0.96);
+}
+
+.bb-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.bb-picker__item {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.bb-picker__item:hover {
+  border-color: var(--accent);
+}
+
+.bb-picker__item.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.bb-picker__item--new {
+  border-style: dashed;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+/* на телефоне настройки кнопки — нижняя шторка, а не полноэкранная страница */
+@media (max-width: 860px) {
+  .properties.properties--button {
+    inset: auto 0 0 0;
+    height: auto;
+    max-height: 80vh;
+    transform: none;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+    animation: sheet-up 0.18s ease-out;
+  }
+
+  .properties--button .properties__mobile-header {
+    padding: 14px 0 12px;
+    border-bottom: none;
+  }
+
+  .button-editor__back {
+    display: none;
+  }
+
+  /* 16px — чтобы iOS не зумил при фокусе на поле */
+  .button-editor .input,
+  .button-editor .select {
+    font-size: 16px;
+  }
+}

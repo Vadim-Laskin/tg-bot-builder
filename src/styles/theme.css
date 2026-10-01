@@ -27,6 +27,12 @@
   --wire-variable: #9ad14b;
   --wire-tag: #f2994a;
   --wire-broadcast: #d946ef;
+
+  /* цвета кнопок Telegram (Bot API 9.4+) */
+  --tg-default: #5b7089;
+  --tg-primary: #3e8ede;
+  --tg-success: #34c759;
+  --tg-danger: #e1526b;
 }
 
 :root[data-theme='dark'] {
