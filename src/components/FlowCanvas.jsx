@@ -15,6 +15,8 @@ import BlockNode from './nodes/BlockNode.jsx';
 import DeletableEdge from './edges/DeletableEdge.jsx';
 import AddBlockModal from './AddBlockModal.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
+import { ButtonsContext } from './ButtonsContext.js';
+import { normalizeButtonIds } from '../lib/normalizeButtons.js';
 import TestPanel from './TestPanel.jsx';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import { useBotStore } from '../store/useBotStore.js';
@@ -41,14 +43,18 @@ function InnerCanvas({ bot, flow }) {
   const [selectedId, setSelectedId] = useState(null);
   const [showTest, setShowTest] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
+  const [editing, setEditing] = useState(null); // { nodeId, buttonId } — открыты настройки кнопки
   const wrapRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
 
   // switching flows (main <-> scenario) should reload the canvas contents
   useEffect(() => {
-    setNodes(flow.nodes);
-    setEdges(flow.edges);
+    // старым кнопкам без id раздаём id (и переносим их стрелки)
+    const fixed = normalizeButtonIds(flow.nodes, flow.edges);
+    setNodes(fixed.nodes);
+    setEdges(fixed.edges);
     setSelectedId(null);
+    setEditing(null);
   }, [flow.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // autosave, debounced on any graph change
@@ -93,6 +99,98 @@ function InnerCanvas({ bot, flow }) {
     [screenToFlowPosition, setNodes]
   );
 
+  // ---------- кнопки блоков: тап, перенос, настройки ----------
+  const patchNodeData = useCallback(
+    (nodeId, fn) => setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: fn(n.data) } : n))),
+    [setNodes]
+  );
+
+  const changeButtons = useCallback(
+    (nodeId, buttons) => patchNodeData(nodeId, (d) => ({ ...d, buttons })),
+    [patchNodeData]
+  );
+
+  const openButton = useCallback((nodeId, buttonId) => {
+    setSelectedId(nodeId);
+    setEditing({ nodeId, buttonId });
+  }, []);
+
+  const addButton = useCallback(
+    (nodeId) => {
+      const b = { id: nanoid(6), text: 'Кнопка', kind: 'callback', style: '', newRow: true };
+      patchNodeData(nodeId, (d) => ({ ...d, buttons: [...(d.buttons ?? []), b] }));
+      openButton(nodeId, b.id);
+    },
+    [patchNodeData, openButton]
+  );
+
+  const buttonsCtx = useMemo(
+    () => ({ editing, openButton, addButton, changeButtons }),
+    [editing, openButton, addButton, changeButtons]
+  );
+
+  const closeButtonEditor = () => {
+    setEditing(null);
+    // на телефоне после «Готово» хочется обратно к холсту, а не в полноэкранные свойства блока
+    if (window.matchMedia('(max-width: 860px)').matches) setSelectedId(null);
+  };
+
+  const editingNode = editing ? nodes.find((n) => n.id === editing.nodeId) : null;
+  const editingButton = editingNode?.data.buttons?.find((b) => b.id === editing.buttonId) ?? null;
+  const handleOf = (buttonId) => `btn-${buttonId}`;
+
+  const buttonEditorProps = useMemo(() => {
+    if (!editingNode || !editingButton) return null;
+    const nodeId = editingNode.id;
+    const buttonId = editingButton.id;
+    const handle = handleOf(buttonId);
+    const dropEdges = (eds) => eds.filter((e) => !(e.source === nodeId && e.sourceHandle === handle));
+    const connect = (eds, target) => [
+      ...dropEdges(eds),
+      { id: `e-${nanoid(8)}`, source: nodeId, sourceHandle: handle, target, animated: true }
+    ];
+
+    return {
+      button: editingButton,
+      layout:
+        editingNode.type === 'sendToChat' && editingNode.data.targetType === 'group'
+          ? 'inline'
+          : editingNode.data.buttonsLayout || 'inline',
+      blocks: nodes,
+      targetId: edges.find((e) => e.source === nodeId && e.sourceHandle === handle)?.target ?? null,
+      onPatch: (patch) => {
+        changeButtons(
+          nodeId,
+          editingNode.data.buttons.map((b) => (b.id === buttonId ? { ...b, ...patch } : b))
+        );
+        // кнопка-ссылка никуда не «переходит» — стрелка ей не нужна
+        if (patch.kind === 'url') setEdges(dropEdges);
+      },
+      onTarget: (target) => setEdges((eds) => (target ? connect(eds, target) : dropEdges(eds))),
+      onCreateTarget: () => {
+        const def = BLOCK_DEFS.message;
+        const idx = editingNode.data.buttons.findIndex((b) => b.id === buttonId);
+        const newNode = {
+          id: nanoid(8),
+          type: 'message',
+          position: { x: editingNode.position.x + 380, y: editingNode.position.y + Math.max(idx, 0) * 90 },
+          data: structuredClone(def.defaultData)
+        };
+        setNodes((nds) => nds.concat(newNode));
+        setEdges((eds) => connect(eds, newNode.id));
+      },
+      onDelete: () => {
+        changeButtons(
+          nodeId,
+          editingNode.data.buttons.filter((b) => b.id !== buttonId)
+        );
+        setEdges(dropEdges);
+        closeButtonEditor();
+      },
+      onClose: closeButtonEditor
+    };
+  }, [editingNode, editingButton, nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
 
   const otherFlows = useMemo(
@@ -132,6 +230,7 @@ function InnerCanvas({ bot, flow }) {
           +
         </button>
 
+        <ButtonsContext.Provider value={buttonsCtx}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -140,14 +239,21 @@ function InnerCanvas({ bot, flow }) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={(_, n) => setSelectedId(n.id)}
-          onPaneClick={() => setSelectedId(null)}
+          onNodeClick={(_, n) => {
+            setSelectedId(n.id);
+            setEditing((cur) => (cur && cur.nodeId === n.id ? cur : null));
+          }}
+          onPaneClick={() => {
+            setSelectedId(null);
+            setEditing(null);
+          }}
           fitView
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} color="var(--grid-dot)" />
           <Controls showInteractive={false} />
         </ReactFlow>
+        </ButtonsContext.Provider>
 
         {showTest ? (
           <TestPanel graph={{ nodes, edges }} allFlows={bot.flows} onClose={() => setShowTest(false)} />
@@ -171,8 +277,10 @@ function InnerCanvas({ bot, flow }) {
           setNodes((nds) => nds.filter((n) => n.id !== selectedId));
           setEdges((eds) => eds.filter((e) => e.source !== selectedId && e.target !== selectedId));
           setSelectedId(null);
+          setEditing(null);
         }}
         onCloseMobile={() => setSelectedId(null)}
+        buttonEditor={buttonEditorProps}
       />
 
       {addBlockOpen && <AddBlockModal onAdd={addBlock} onClose={() => setAddBlockOpen(false)} />}
