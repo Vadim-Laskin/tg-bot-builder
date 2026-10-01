@@ -52,7 +52,7 @@ export const useBotStore = create((set, get) => ({
     set({ bots: data.map(mapBot), loading: false });
   },
 
-  async createBot(name) {
+  async createBot(name, telegramToken = '') {
     const {
       data: { user }
     } = await supabase.auth.getUser();
@@ -60,7 +60,7 @@ export const useBotStore = create((set, get) => ({
 
     const { data: botRow, error } = await supabase
       .from('bots')
-      .insert({ name: name?.trim() || 'Новый бот', user_id: user.id })
+      .insert({ name: name?.trim() || 'Новый бот', user_id: user.id, telegram_token: telegramToken })
       .select()
       .single();
     if (error) {
@@ -81,6 +81,39 @@ export const useBotStore = create((set, get) => ({
     const bot = mapBot({ ...botRow, flows: [flowRow] });
     set((s) => ({ bots: [...s.bots, bot], activeBotId: bot.id, activeFlowId: bot.flows[0].id }));
     return bot.id;
+  },
+
+  // Puts a ready-made graph (+ the variables/tags its blocks refer to) into
+  // the bot's main flow. Used by the new-bot wizard's template picker.
+  async applyStarterGraph(botId, { nodes, edges, variableDefs = [], tagDefs = [] }) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const flow = bot?.flows.find((f) => f.isMain) ?? bot?.flows[0];
+    if (!bot || !flow) return false;
+
+    const merge = (old, add) => [...old, ...add.filter((d) => !old.some((o) => o.id === d.id))];
+    const nextVars = merge(bot.variableDefs, variableDefs);
+    const nextTags = merge(bot.tagDefs, tagDefs);
+
+    set((s) => ({
+      bots: s.bots.map((b) =>
+        b.id !== botId
+          ? b
+          : {
+              ...b,
+              variableDefs: nextVars,
+              tagDefs: nextTags,
+              flows: b.flows.map((f) => (f.id === flow.id ? { ...f, nodes, edges } : f))
+            }
+      )
+    }));
+
+    const [flowRes, botRes] = await Promise.all([
+      supabase.from('flows').update({ graph: { nodes, edges } }).eq('id', flow.id),
+      supabase.from('bots').update({ variable_defs: nextVars, tag_defs: nextTags }).eq('id', botId)
+    ]);
+    if (flowRes.error) console.error('applyStarterGraph (flow):', flowRes.error.message);
+    if (botRes.error) console.error('applyStarterGraph (bot):', botRes.error.message);
+    return !flowRes.error && !botRes.error;
   },
 
   async deleteBot(botId) {
