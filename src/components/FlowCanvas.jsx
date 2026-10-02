@@ -110,16 +110,17 @@ function InnerCanvas({ bot, flow }) {
     [patchNodeData]
   );
 
-  const openButton = useCallback((nodeId, buttonId) => {
+  // from: 'canvas' — тап по кнопке на блоке; 'panel' — в боковой панели блока
+  const openButton = useCallback((nodeId, buttonId, from = 'canvas') => {
     setSelectedId(nodeId);
-    setEditing({ nodeId, buttonId });
+    setEditing({ nodeId, buttonId, from });
   }, []);
 
   const addButton = useCallback(
-    (nodeId) => {
+    (nodeId, from = 'canvas') => {
       const b = { id: nanoid(6), text: 'Кнопка', kind: 'callback', style: '', newRow: true };
       patchNodeData(nodeId, (d) => ({ ...d, buttons: [...(d.buttons ?? []), b] }));
-      openButton(nodeId, b.id);
+      openButton(nodeId, b.id, from);
     },
     [patchNodeData, openButton]
   );
@@ -130,7 +131,10 @@ function InnerCanvas({ bot, flow }) {
   );
 
   const closeButtonEditor = () => {
+    const from = editing?.from;
     setEditing(null);
+    // открывали из панели блока — туда и возвращаемся
+    if (from === 'panel') return;
     // на телефоне после «Готово» хочется обратно к холсту, а не в полноэкранные свойства блока
     if (window.matchMedia('(max-width: 860px)').matches) setSelectedId(null);
   };
@@ -189,7 +193,7 @@ function InnerCanvas({ bot, flow }) {
       },
       onClose: closeButtonEditor
     };
-  }, [editingNode, editingButton, nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editing, editingNode, editingButton, nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
 
@@ -224,13 +228,13 @@ function InnerCanvas({ bot, flow }) {
   }, [bot.id]);
 
   return (
+    <ButtonsContext.Provider value={buttonsCtx}>
     <div className="editor-layout">
       <div className="canvas-wrap" ref={wrapRef}>
         <button className="btn btn--primary add-block-fab" onClick={() => setAddBlockOpen(true)} title="Добавить блок">
           +
         </button>
 
-        <ButtonsContext.Provider value={buttonsCtx}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -253,7 +257,6 @@ function InnerCanvas({ bot, flow }) {
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} color="var(--grid-dot)" />
           <Controls showInteractive={false} />
         </ReactFlow>
-        </ButtonsContext.Provider>
 
         {showTest ? (
           <TestPanel graph={{ nodes, edges }} allFlows={bot.flows} onClose={() => setShowTest(false)} />
@@ -285,5 +288,6 @@ function InnerCanvas({ bot, flow }) {
 
       {addBlockOpen && <AddBlockModal onAdd={addBlock} onClose={() => setAddBlockOpen(false)} />}
     </div>
+    </ButtonsContext.Provider>
   );
 }

@@ -5,6 +5,7 @@ import { BUTTON_STYLES } from '../engine/buttonStyles.js';
 import VariableInserter from './VariableInserter.jsx';
 import ChipTextarea from './ChipTextarea.jsx';
 import ButtonEditor from './ButtonEditor.jsx';
+import NodeButtons from './nodes/NodeButtons.jsx';
 
 export default function PropertiesPanel({
   node,
@@ -164,7 +165,7 @@ export default function PropertiesPanel({
               станут обычными, под сообщением.
             </p>
           )}
-          <ButtonsEditor buttons={data.buttons} onChange={(buttons) => set({ buttons })} layout={data.buttonsLayout || 'inline'} />
+          <ButtonsEditor nodeId={node.id} buttons={data.buttons} layout={data.buttonsLayout || 'inline'} />
         </>
       )}
 
@@ -389,8 +390,8 @@ export default function PropertiesPanel({
             </>
           )}
           <ButtonsEditor
+            nodeId={node.id}
             buttons={data.buttons}
-            onChange={(buttons) => set({ buttons })}
             layout={data.targetType === 'group' ? 'inline' : data.buttonsLayout || 'inline'}
           />
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.4 }}>
@@ -704,20 +705,16 @@ function messageNodeLabel(n) {
   return `${icon} ${preview}`;
 }
 
-// Сами кнопки правятся на холсте: тап по кнопке — настройки, зажать и
-// потянуть — переставить. Здесь только быстрый способ добавить новую.
-function ButtonsEditor({ buttons = [], onChange }) {
-  const add = () => onChange([...buttons, { id: nanoid(6), text: 'Кнопка', kind: 'callback', style: '', newRow: true }]);
+// Те же кнопки, что и на холсте: тап — настройки, зажать и потянуть — переставить.
+function ButtonsEditor({ nodeId, buttons = [], layout = 'inline' }) {
   return (
     <Field label="Кнопки">
       <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-2px 0 8px', lineHeight: 1.5 }}>
         {buttons.length > 0
-          ? 'Нажмите на кнопку в блоке, чтобы настроить её. Зажмите и потяните — чтобы переставить или поставить рядом с другой.'
-          : 'Кнопок пока нет.'}
+          ? 'Нажмите на кнопку, чтобы настроить её. Зажмите и потяните — чтобы переставить или поставить рядом с другой.'
+          : 'Кнопок пока нет — добавьте первую.'}
       </p>
-      <button className="btn btn--sm" onClick={add}>
-        + Кнопка
-      </button>
+      <NodeButtons nodeId={nodeId} buttons={buttons} layout={layout} variant="panel" />
     </Field>
   );
 }

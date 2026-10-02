@@ -18,7 +18,12 @@ export default function AuthForm() {
     const { error } =
       mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({
+            email,
+            password,
+            // ссылка из письма-подтверждения должна вести в конструктор (/cp/), а не на главную
+            options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL }
+          });
 
     setBusy(false);
     if (error) {
