@@ -3,10 +3,19 @@
   publish = "dist"
   functions = "netlify/functions"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Структура сайта:
+#   /      — информационный сайт (папка site/, не связан с конструктором)
+#   /cp/   — сам конструктор (React-приложение, собирается в dist/cp)
+#   /.netlify/functions/* — бэкенд (вебхук Telegram и т.д.)
 
-# Telegram webhooks and API calls will live in netlify/functions/*
-# once the backend phase starts (see README.md -> "Следующие шаги").
+[[redirects]]
+  from = "/cp"
+  to = "/cp/"
+  status = 301
+
+# SPA-фолбэк только внутри /cp — главная и её страницы не затрагиваются.
+# (Реальные файлы — js/css/стикеры — Netlify отдаёт раньше этого правила.)
+[[redirects]]
+  from = "/cp/*"
+  to = "/cp/index.html"
+  status = 200
