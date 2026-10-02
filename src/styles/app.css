@@ -1924,3 +1924,25 @@
     font-size: 16px;
   }
 }
+
+/* кнопки внутри боковой панели блока — мини-«чат» без точек для стрелок */
+.tg-buttons--panel {
+  padding: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.tg-buttons--panel.tg-buttons--kbd {
+  margin: 0;
+}
+
+.tg-buttons--panel .tg-btn {
+  height: 36px;
+  font-size: 13px;
+}
+
+.tg-buttons--panel .tg-add {
+  height: 34px;
+  font-size: 12px;
+}
