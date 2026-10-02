@@ -9,7 +9,11 @@ const MOVE_TOLERANCE = 6; // px: дальше — это уже не тап
 
 // Кнопки на карточке блока выглядят как в Telegram и не редактируются на
 // месте: тап — открыть настройки кнопки, зажать и потянуть — переставить.
-export default function NodeButtons({ nodeId, buttons, layout }) {
+// variant: 'node' — на карточке блока (есть точки для стрелок);
+// 'panel' — в боковой панели свойств (без точек, внутри панели нет React Flow).
+export default function NodeButtons({ nodeId, buttons, layout, variant = 'node' }) {
+  const inPanel = variant === 'panel';
+  const source = inPanel ? 'panel' : 'canvas';
   const ctx = useContext(ButtonsContext);
   const rows = groupButtonsIntoRows(buttons);
   const isKbd = layout === 'keyboard';
@@ -124,17 +128,17 @@ export default function NodeButtons({ nodeId, buttons, layout }) {
       setDrag(null);
       setDropBoth(null);
     } else if (!cancelled) {
-      ctx?.openButton(nodeId, s.id); // обычный тап
+      ctx?.openButton(nodeId, s.id, source); // обычный тап
     }
   };
 
   return (
     <>
-      <div className={`tg-buttons${isKbd ? ' tg-buttons--kbd' : ''}`}>
+      <div className={`tg-buttons${isKbd ? ' tg-buttons--kbd' : ''}${inPanel ? ' tg-buttons--panel' : ''}`}>
         {rows.map((row, ri) => (
           <div className="tg-row" key={ri}>
             {row.map((b) => {
-              const wireable = isKbd || b.kind !== 'url';
+              const wireable = !inPanel && (isKbd || b.kind !== 'url');
               const dropMode = drop?.id === b.id ? drop.mode : null;
               return (
                 <div
@@ -174,7 +178,7 @@ export default function NodeButtons({ nodeId, buttons, layout }) {
         ))}
 
         {ctx && (
-          <button className="tg-add nodrag nopan" onClick={() => ctx.addButton(nodeId)}>
+          <button className="tg-add nodrag nopan" onClick={() => ctx.addButton(nodeId, source)}>
             ＋ Кнопка
           </button>
         )}
