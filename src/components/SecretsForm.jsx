@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { connectWebhook as registerWebhook } from '../lib/webhook.js';
+import { vkConnectBot, vkVerifyToken } from '../lib/vk.js';
+import { isVk } from '../lib/platform.js';
 
 export default function SecretsForm({ bot, onSave, onClose }) {
-  const [token, setToken] = useState(bot.telegramToken);
+  const vk = isVk(bot);
+  const [token, setToken] = useState(vk ? bot.vkToken : bot.telegramToken);
   const [groq, setGroq] = useState(bot.groqApiKey);
   const [saved, setSaved] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState(null); // { ok, message }
   const [connecting, setConnecting] = useState(false);
 
+  const secrets = () => (vk ? { vkToken: token, groqApiKey: groq } : { telegramToken: token, groqApiKey: groq });
+  const savedToken = vk ? bot.vkToken : bot.telegramToken;
+
   const save = async () => {
-    await onSave(bot.id, { telegramToken: token, groqApiKey: groq });
+    await onSave(bot.id, secrets());
     setSaved(true);
   };
 
@@ -17,10 +23,29 @@ export default function SecretsForm({ bot, onSave, onClose }) {
     setConnecting(true);
     setWebhookStatus(null);
 
+    if (vk) {
+      // ключ мог поменяться на ключ другого сообщества — берём id сообщества из самого ключа
+      const verified = await vkVerifyToken(token.trim());
+      if (!verified.ok) {
+        setWebhookStatus({ ok: false, message: verified.error });
+        setConnecting(false);
+        return;
+      }
+      await onSave(bot.id, { ...secrets(), vkToken: token.trim(), vkGroupId: verified.group.id });
+      const res = await vkConnectBot(bot.id);
+      setWebhookStatus(
+        res.ok
+          ? { ok: true, message: ['Готово — сообщество подключено, напишите ему во ВКонтакте.', ...(res.warnings ?? [])].join(' ') }
+          : { ok: false, message: res.error }
+      );
+      setConnecting(false);
+      return;
+    }
+
     // make sure the token typed just now is actually saved before we try
     // to register a webhook for it
-    if (token !== bot.telegramToken || groq !== bot.groqApiKey) {
-      await onSave(bot.id, { telegramToken: token, groqApiKey: groq });
+    if (token !== savedToken || groq !== bot.groqApiKey) {
+      await onSave(bot.id, secrets());
     }
 
     setWebhookStatus(await registerWebhook(bot.id));
@@ -30,7 +55,9 @@ export default function SecretsForm({ bot, onSave, onClose }) {
   return (
     <div>
       <div className="field">
-        <span className="field__label">Telegram Bot Token (из @BotFather)</span>
+        <span className="field__label">
+          {vk ? 'Ключ доступа сообщества ВКонтакте' : 'Telegram Bot Token (из @BotFather)'}
+        </span>
         <input
           className="input"
           value={token}
@@ -38,7 +65,7 @@ export default function SecretsForm({ bot, onSave, onClose }) {
             setToken(e.target.value);
             setSaved(false);
           }}
-          placeholder="123456:ABC…"
+          placeholder={vk ? 'vk1.a.…' : '123456:ABC…'}
         />
       </div>
       <div className="field">
@@ -63,7 +90,7 @@ export default function SecretsForm({ bot, onSave, onClose }) {
           {saved ? '✓ Сохранено' : 'Сохранить'}
         </button>
         <button className="btn btn--primary btn--sm" onClick={connectWebhook} disabled={connecting || !token}>
-          {connecting ? 'Подключаю…' : '🔌 Подключить вебхук'}
+          {connecting ? 'Подключаю…' : vk ? '🔌 Подключить сообщество' : '🔌 Подключить вебхук'}
         </button>
       </div>
 

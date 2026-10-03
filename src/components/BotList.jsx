@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBotStore } from '../store/useBotStore.js';
+import { platformLabel, tokenStatusLabel } from '../lib/platform.js';
 import NewBotWizard from './NewBotWizard.jsx';
 
 export default function BotList({ onOpenBot }) {
@@ -32,7 +33,7 @@ export default function BotList({ onOpenBot }) {
             <div className="bot-card__name">{bot.name}</div>
             <div className="bot-card__meta">
               {bot.flows.length} {bot.flows.length === 1 ? 'сценарий' : 'сценариев'} ·{' '}
-              {bot.telegramToken ? 'токен задан' : 'токен не задан'}
+              {platformLabel(bot)} · {tokenStatusLabel(bot)}
             </div>
             <div className="bot-card__actions">
               <button

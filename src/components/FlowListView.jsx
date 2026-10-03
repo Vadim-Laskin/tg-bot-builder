@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Modal from './Modal.jsx';
 import SecretsForm from './SecretsForm.jsx';
 import { useBotStore } from '../store/useBotStore.js';
+import { platformLabel, tokenStatusLabel } from '../lib/platform.js';
 
 export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, onBack }) {
   const bot = useBotStore((s) => s.getActiveBot());
@@ -53,7 +54,7 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
           </h1>
           <p className="page__subtitle">
             {bot.flows.length} {bot.flows.length === 1 ? 'сценарий' : 'сценариев'} ·{' '}
-            {bot.telegramToken ? 'токен задан' : 'токен не задан'}
+            {platformLabel(bot)} · {tokenStatusLabel(bot)}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
