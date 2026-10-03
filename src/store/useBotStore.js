@@ -23,7 +23,11 @@ function mapBot(row) {
   return {
     id: row.id,
     name: row.name,
+    platform: row.platform ?? 'telegram', // 'telegram' | 'vk'
     telegramToken: row.telegram_token ?? '',
+    vkGroupId: row.vk_group_id ?? '',
+    vkToken: row.vk_token ?? '',
+    vkSecret: row.vk_secret ?? '',
     groqApiKey: row.groq_api_key ?? '',
     createdAt: row.created_at,
     variableDefs: row.variable_defs ?? [], // [{id, name, scope}]
@@ -52,7 +56,9 @@ export const useBotStore = create((set, get) => ({
     set({ bots: data.map(mapBot), loading: false });
   },
 
-  async createBot(name, telegramToken = '') {
+  // extra: строка (токен Telegram — как раньше) или { platform, telegramToken, vkGroupId, vkToken, vkSecret }
+  async createBot(name, extra = {}) {
+    const opts = typeof extra === 'string' ? { telegramToken: extra } : extra ?? {};
     const {
       data: { user }
     } = await supabase.auth.getUser();
@@ -60,7 +66,15 @@ export const useBotStore = create((set, get) => ({
 
     const { data: botRow, error } = await supabase
       .from('bots')
-      .insert({ name: name?.trim() || 'Новый бот', user_id: user.id, telegram_token: telegramToken })
+      .insert({
+        name: name?.trim() || 'Новый бот',
+        user_id: user.id,
+        platform: opts.platform ?? 'telegram',
+        telegram_token: opts.telegramToken ?? '',
+        vk_group_id: opts.vkGroupId ?? '',
+        vk_token: opts.vkToken ?? '',
+        vk_secret: opts.vkSecret ?? ''
+      })
       .select()
       .single();
     if (error) {
@@ -131,14 +145,16 @@ export const useBotStore = create((set, get) => ({
     if (error) console.error('renameBot:', error.message);
   },
 
-  async setBotSecrets(botId, { telegramToken, groqApiKey }) {
+  async setBotSecrets(botId, { telegramToken, groqApiKey, vkToken, vkGroupId }) {
     set((s) => ({
       bots: s.bots.map((b) =>
         b.id === botId
           ? {
               ...b,
               telegramToken: telegramToken ?? b.telegramToken,
-              groqApiKey: groqApiKey ?? b.groqApiKey
+              groqApiKey: groqApiKey ?? b.groqApiKey,
+              vkToken: vkToken ?? b.vkToken,
+              vkGroupId: vkGroupId ?? b.vkGroupId
             }
           : b
       )
@@ -146,6 +162,8 @@ export const useBotStore = create((set, get) => ({
     const patch = {};
     if (telegramToken !== undefined) patch.telegram_token = telegramToken;
     if (groqApiKey !== undefined) patch.groq_api_key = groqApiKey;
+    if (vkToken !== undefined) patch.vk_token = vkToken;
+    if (vkGroupId !== undefined) patch.vk_group_id = vkGroupId;
     const { error } = await supabase.from('bots').update(patch).eq('id', botId);
     if (error) console.error('setBotSecrets:', error.message);
   },
