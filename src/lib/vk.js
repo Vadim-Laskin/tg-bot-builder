@@ -20,7 +20,7 @@ async function callFunction(name, body) {
       };
     }
     const data = await res.json().catch(() => ({}));
-    return res.ok ? { ok: true, ...data } : { ok: false, error: data.error || 'Ошибка сервера.' };
+    return res.ok ? { ok: true, ...data } : { ok: false, error: data.error || 'Ошибка сервера.', code: data.code };
   } catch (e) {
     return { ok: false, error: 'Не удалось обратиться к серверу: ' + e.message };
   }
@@ -35,3 +35,6 @@ export const vkConnectBot = (botId) => callFunction('vk-connect', { action: 'con
 // обменивает код входа на токен (на сервере) и отдаёт список сообществ, где человек админ
 // → { ok, communities: [{ id, name, screenName, photo }] }
 export const vkListCommunities = (auth) => callFunction('vk-auth', auth);
+
+// короткий адрес (vk.com/mygroup) → числовой id → { ok, id }
+export const vkResolveCommunity = (screenName) => callFunction('vk-auth', { action: 'resolve', screenName });

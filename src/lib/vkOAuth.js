@@ -22,7 +22,7 @@ const sha256 = (text) => crypto.subtle.digest('SHA-256', new TextEncoder().encod
 
 // window.open нужно вызывать прямо из обработчика клика, до любых await,
 // иначе браузер заблокирует окно
-function openPopup() {
+export function openPopup() {
   const w = 520;
   const h = 720;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -136,9 +136,9 @@ export async function loginWithVk() {
 }
 
 // Шаг 2. → { token, expiresIn } — ключ доступа выбранного сообщества
-export async function loginCommunity(groupId) {
+export async function loginCommunity(groupId, preOpened) {
   if (!VK_APP_ID) throw new Error('Вход через ВКонтакте не настроен (нет VITE_VK_APP_ID).');
-  const popup = openPopup(); // синхронно!
+  const popup = preOpened ?? openPopup(); // окно открывают синхронно с кликом
 
   try {
     const state = randomString(16);
@@ -166,4 +166,20 @@ export async function loginCommunity(groupId) {
   } finally {
     if (!popup.closed) popup.close();
   }
+}
+
+// Что человек вставил в поле «ссылка или ID сообщества» → { id } | { screenName } | { error }
+export function parseCommunityRef(input) {
+  let v = String(input || '').trim();
+  if (!v) return { error: 'Вставьте ссылку на сообщество или его ID.' };
+
+  v = v.replace(/^https?:\/\//i, '').replace(/^(m\.)?vk\.(com|ru)\//i, '');
+  v = v.split(/[/?#]/)[0].replace(/^@/, '');
+
+  const club = /^(?:club|public|event)(\d+)$/i.exec(v);
+  if (club) return { id: club[1] };
+  if (/^-?\d+$/.test(v)) return { id: v.replace('-', '') };
+  if (/^id\d+$/i.test(v)) return { error: 'Это личная страница. Нужна ссылка на сообщество (vk.com/club…).' };
+  if (/^[A-Za-z0-9_.]{2,64}$/.test(v)) return { screenName: v };
+  return { error: 'Не получилось разобрать ссылку. Пример: vk.com/club123456 или просто 123456.' };
 }
