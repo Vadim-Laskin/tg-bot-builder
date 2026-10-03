@@ -25,3 +25,18 @@ export function formatMessageText(raw) {
 
   return text;
 }
+
+// ВКонтакте не понимает ни HTML, ни Markdown — разметку просто убираем, чтобы
+// в сообщении не торчали звёздочки: **жирный**/*курсив*/`код` → голый текст,
+// [текст](ссылка) → «текст (ссылка)».
+export function formatPlainText(raw) {
+  if (typeof raw !== 'string') return '';
+
+  return raw
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1 ($2)')
+    .replace(/`([^`]+?)`/g, '$1')
+    .replace(/\*\*([^*]+?)\*\*/g, '$1')
+    .replace(/__([^_]+?)__/g, '$1')
+    .replace(/\*([^*]+?)\*/g, '$1')
+    .replace(/_([^_]+?)_/g, '$1');
+}

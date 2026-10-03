@@ -254,7 +254,15 @@ function buildButtons(nodeId, rawButtons, layout, context) {
     context.pendingKeyboard = Object.fromEntries(
       rawButtons.map((b, i) => [b.text, { nodeId, buttonId: getButtonId(b, i) }])
     );
-    return rawButtons.map((b) => ({ text: b.text, kind: 'keyboard', newRow: b.newRow, style: b.style }));
+    // callbackData нужен ВКонтакте: у его текстовых кнопок есть payload, и по нему
+    // нажатие находится точнее, чем по тексту (Telegram это поле игнорирует)
+    return rawButtons.map((b, i) => ({
+      text: b.text,
+      kind: 'keyboard',
+      callbackData: buildCallbackData(nodeId, getButtonId(b, i)),
+      newRow: b.newRow,
+      style: b.style
+    }));
   }
   return rawButtons.map((b, i) =>
     b.kind === 'url'
