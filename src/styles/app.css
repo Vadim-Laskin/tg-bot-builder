@@ -1946,3 +1946,130 @@
   height: 34px;
   font-size: 12px;
 }
+
+/* ---------- мастер: выбор платформы и сообществ ВКонтакте ---------- */
+
+.wizard__back {
+  align-self: flex-start;
+  margin: -12px 0 12px -8px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.wizard__back:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.tpl-card--platform {
+  min-height: 108px;
+  padding-right: 60px;
+}
+
+.tpl-card--platform .tpl-card__title {
+  font-size: 16px;
+}
+
+.tpl-card--platform .tpl-card__title small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.tpl-card--platform .tpl-card__icon {
+  font-size: 32px;
+  opacity: 0.7;
+}
+
+.wizard__error--center {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.vk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.vk-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.vk-item:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.vk-item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.vk-item__ava {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vk-item__ava--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.vk-item__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.vk-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vk-item__sub {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.vk-item__busy {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .wizard__back {
+    margin-top: 0;
+  }
+  .vk-list {
+    max-height: none;
+  }
+}
