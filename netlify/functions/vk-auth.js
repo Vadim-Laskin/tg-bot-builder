@@ -6,8 +6,14 @@
 //   POST { code, codeVerifier, deviceId, redirectUri, state }
 //   → { communities: [{ id, name, screenName, photo }] }
 //
-// ВАЖНО: права scope=groups выдаёт приложению только поддержка VK
-// (devsupport@corp.vk.com) — без этого VK вернёт ошибку на этапе входа.
+//   POST { action: 'resolve', screenName }   (нужен VK_SERVICE_KEY)
+//   → { id } — числовой id сообщества по короткому адресу (vk.com/mygroup)
+//
+// ВАЖНО: токен VK ID (vk2.a.…) без выданного доступа groups не может вызывать
+// методы API — VK отвечает ошибкой 1051 «Method is not available for this profile
+// type». Доступ выдаёт поддержка VK (devsupport@corp.vk.com). Пока его нет, мастер
+// предлагает подключить сообщество по ссылке (OAuth сообщества доступен любому
+// приложению) или по ключу доступа.
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -27,15 +33,18 @@ export const handler = async (event) => {
   } = await supabase.auth.getUser(authHeader.replace(/^Bearer\s+/i, ''));
   if (!user) return json(401, { error: 'не авторизовано' });
 
-  const clientId = process.env.VK_APP_ID || process.env.VITE_VK_APP_ID;
-  if (!clientId) return json(500, { error: 'На сервере не задан VK_APP_ID (или VITE_VK_APP_ID).' });
-
   let body;
   try {
     body = JSON.parse(event.body || '{}');
   } catch {
     return json(400, { error: 'bad json' });
   }
+
+  if (body.action === 'resolve') return resolveScreenName(String(body.screenName || '').trim());
+
+  const clientId = process.env.VK_APP_ID || process.env.VITE_VK_APP_ID;
+  if (!clientId) return json(500, { error: 'На сервере не задан VK_APP_ID (или VITE_VK_APP_ID).' });
+
   const { code, codeVerifier, deviceId, redirectUri, state } = body;
   if (!code || !codeVerifier || !deviceId || !redirectUri) return json(400, { error: 'не хватает параметров входа' });
 
@@ -90,10 +99,13 @@ export const handler = async (event) => {
   if (!last?.response) {
     const code = last?.error?.error_code;
     console.error('vk-auth: groups.get failed', last?.error);
-    if (code === 15 || code === 7 || code === 27 || code === 28) {
+    if (code === 1051 || code === 15 || code === 7 || code === 27 || code === 28) {
       return json(400, {
+        code: 'groups_unavailable',
         error:
-          'ВКонтакте не дал приложению доступ к списку сообществ (scope groups). Его нужно запросить у поддержки VK — devsupport@corp.vk.com. Пока можно подключить сообщество по ключу доступа.'
+          'ВКонтакте не дал приложению доступ к списку ваших сообществ (ошибка ' +
+          code +
+          '): токен входа VK ID без выданного доступа groups не может вызывать методы API. Доступ выдаёт поддержка VK — devsupport@corp.vk.com. Пока укажите сообщество по ссылке или вставьте ключ доступа.'
       });
     }
     return json(400, { error: last?.error?.error_msg || 'Не удалось получить список сообществ.' });
@@ -107,3 +119,38 @@ export const handler = async (event) => {
   }));
   return json(200, { communities });
 };
+
+// Короткий адрес сообщества → числовой id (OAuth сообщества принимает только числа).
+// Работает сервисным ключом приложения (VK_SERVICE_KEY: настройки приложения → «Сервисный ключ доступа»).
+async function resolveScreenName(screenName) {
+  const key = process.env.VK_SERVICE_KEY;
+  if (!key) {
+    return json(400, {
+      code: 'no_service_key',
+      error: 'Короткий адрес сообщества здесь не разобрать. Вставьте ссылку вида vk.com/club123456 или числовой ID (он показан в Управление → Настройки).'
+    });
+  }
+  if (!/^[A-Za-z0-9_.]{2,64}$/.test(screenName)) return json(400, { error: 'Не похоже на адрес сообщества.' });
+
+  let last;
+  for (const host of API_HOSTS) {
+    try {
+      const res = await fetch(`${host}/method/utils.resolveScreenName`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ screen_name: screenName, access_token: key, v: API_VERSION })
+      });
+      last = await res.json();
+    } catch (e) {
+      last = { error: { error_code: -1, error_msg: e.message } };
+    }
+    if (last.response !== undefined) break;
+  }
+
+  const r = last?.response;
+  if (!r || Array.isArray(r) || !r.object_id) return json(404, { error: 'Не нашёл такого адреса во ВКонтакте.' });
+  if (r.type !== 'group' && r.type !== 'page' && r.type !== 'event') {
+    return json(400, { error: 'Это адрес личной страницы, а не сообщества.' });
+  }
+  return json(200, { id: String(r.object_id) });
+}
