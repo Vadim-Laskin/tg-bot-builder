@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Возвращаемся в Flowbase…</title>
+    <style>
+      body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; color: #666; }
+    </style>
+  </head>
+  <body>
+    <p>Готово — возвращаемся в конструктор. Это окно можно закрыть.</p>
+    <script>
+      // Страница-приёмник входа через ВКонтакте: отдаёт то, что VK положил в адрес
+      // (code/state в query или access_token в #-части), окну конструктора и закрывается.
+      (function () {
+        var data = { type: 'flowbase-vk-oauth', search: location.search, hash: location.hash, t: Date.now() };
+        try { localStorage.setItem('flowbase-vk-oauth', JSON.stringify(data)); } catch (e) {}
+        try { if (window.opener) window.opener.postMessage(data, location.origin); } catch (e) {}
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        setTimeout(function () { window.close(); }, 300);
+      })();
+    </script>
+  </body>
+</html>
