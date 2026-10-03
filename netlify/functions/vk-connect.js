@@ -12,7 +12,7 @@ import { vkCall, VK_API_VERSION } from '../lib/vkApi.js';
 const json = (statusCode, obj) => ({ statusCode, body: JSON.stringify(obj) });
 const SERVER_TITLE = 'Flowbase';
 
-export const handler = async (event) => {
+async function main(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'method not allowed' });
 
   const authHeader = event.headers.authorization || event.headers.Authorization;
@@ -36,7 +36,7 @@ export const handler = async (event) => {
   if (body.action === 'verify') return verify(String(body.token || '').trim());
   if (body.action === 'connect') return connect(supabase, body.botId);
   return json(400, { error: 'неизвестное действие' });
-};
+}
 
 function friendlyError(error) {
   const code = error?.error_code;
@@ -132,3 +132,19 @@ async function connect(supabase, botId) {
 
   return json(200, { ok: true, serverId, warnings, url });
 }
+
+// Любой сбой возвращаем читаемым JSON-ом, а не голым «502 Bad Gateway»
+export const handler = async (event) => {
+  const missing = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'].filter((k) => !process.env[k]);
+  if (missing.length) {
+    return json(500, {
+      error: `На Netlify не заданы переменные: ${missing.join(', ')}. Site settings → Environment variables, затем Deploy → Trigger deploy.`
+    });
+  }
+  try {
+    return await main(event);
+  } catch (e) {
+    console.error(`${'vk-connect'} crashed:`, e);
+    return json(500, { error: `Сбой на сервере: ${e.message}` });
+  }
+};

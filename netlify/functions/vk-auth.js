@@ -22,7 +22,7 @@ const API_VERSION = '5.199';
 // ВКонтакте переезжает на домен vk.ru; какой хост примет токен VK ID — пробуем по очереди
 const API_HOSTS = ['https://api.vk.ru', 'https://api.vk.com'];
 
-export const handler = async (event) => {
+async function main(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'method not allowed' });
 
   const authHeader = event.headers.authorization || event.headers.Authorization;
@@ -118,7 +118,7 @@ export const handler = async (event) => {
     photo: g.photo_100 || g.photo_50 || g.photo_200 || null
   }));
   return json(200, { communities });
-};
+}
 
 // Короткий адрес сообщества → числовой id (OAuth сообщества принимает только числа).
 // Работает сервисным ключом приложения (VK_SERVICE_KEY: настройки приложения → «Сервисный ключ доступа»).
@@ -154,3 +154,19 @@ async function resolveScreenName(screenName) {
   }
   return json(200, { id: String(r.object_id) });
 }
+
+// Любой сбой возвращаем читаемым JSON-ом, а не голым «502 Bad Gateway»
+export const handler = async (event) => {
+  const missing = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'].filter((k) => !process.env[k]);
+  if (missing.length) {
+    return json(500, {
+      error: `На Netlify не заданы переменные: ${missing.join(', ')}. Site settings → Environment variables, затем Deploy → Trigger deploy.`
+    });
+  }
+  try {
+    return await main(event);
+  } catch (e) {
+    console.error(`${'vk-auth'} crashed:`, e);
+    return json(500, { error: `Сбой на сервере: ${e.message}` });
+  }
+};
