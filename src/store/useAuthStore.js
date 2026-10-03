@@ -22,9 +22,21 @@ export const useAuthStore = create((set, get) => ({
   },
 
   async loadProfile() {
-    const { data, error } = await supabase.from('profiles').select('*').single();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (error) {
       console.error('Не удалось загрузить профиль:', error.message);
+      return;
+    }
+    if (!data) {
+      // строки профиля нет — аккаунт создан раньше, чем в базе появился триггер.
+      // Работаем как обычный пользователь; чинится SQL-запросом из supabase/schema.sql.
+      console.warn('Профиль не найден в таблице profiles — выполните supabase/schema.sql (раздел «Профили»).');
+      set({ profile: { id: user.id, email: user.email, is_admin: false } });
       return;
     }
     set({ profile: data });
