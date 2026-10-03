@@ -3,8 +3,8 @@ import { useBotStore } from '../store/useBotStore.js';
 import { STARTER_TEMPLATES } from '../engine/starterTemplates.js';
 import { TOKEN_RE, getBotInfo } from '../lib/telegram.js';
 import { connectWebhook } from '../lib/webhook.js';
-import { vkConnectBot, vkListCommunities, vkVerifyToken } from '../lib/vk.js';
-import { VK_APP_ID, loginCommunity, loginWithVk } from '../lib/vkOAuth.js';
+import { vkConnectBot, vkListCommunities, vkResolveCommunity, vkVerifyToken } from '../lib/vk.js';
+import { VK_APP_ID, loginCommunity, loginWithVk, openPopup, parseCommunityRef } from '../lib/vkOAuth.js';
 import { randomVkSecret } from '../lib/platform.js';
 import TgsSticker from './TgsSticker.jsx';
 
@@ -12,6 +12,10 @@ const PLATFORMS = [
   { id: 'telegram', title: 'Telegram', hint: 'Понадобится токен от @BotFather', icon: '✈️', gradient: 'linear-gradient(135deg,#2aabee,#1c8fd0)' },
   { id: 'vk', title: 'ВКонтакте', hint: 'Выберите своё сообщество', icon: '💬', gradient: 'linear-gradient(135deg,#0077ff,#4a9bff)' }
 ];
+
+// Список «моих сообществ» работает только если VK выдал приложению доступ groups
+// (см. README) — тогда в .env ставят VITE_VK_GROUPS_ACCESS=1
+const GROUPS_LIST = VK_APP_ID && import.meta.env.VITE_VK_GROUPS_ACCESS === '1';
 
 const WEBHOOK_LATER = 'Вебхук пока не подключён (это нормально при локальном запуске). Его можно подключить позже: бот → «🔑 Ключи бота».';
 
@@ -30,7 +34,8 @@ export default function NewBotWizard({ onClose, onDone }) {
   // Telegram
   const [token, setToken] = useState('');
   // ВКонтакте
-  const [vkMode, setVkMode] = useState('start'); // 'start' | 'list' | 'manual'
+  const [vkMode, setVkMode] = useState('start'); // 'start' | 'list' | 'link' | 'manual'
+  const [vkLink, setVkLink] = useState('');
   const [communities, setCommunities] = useState([]);
   const [vkKey, setVkKey] = useState('');
 
@@ -93,7 +98,7 @@ export default function NewBotWizard({ onClose, onDone }) {
       const auth = await loginWithVk(); // окно входа открывается синхронно, до любых await
       setBusy('vk-list');
       const res = await vkListCommunities(auth);
-      if (!res.ok) throw new Error(res.error);
+      if (!res.ok) throw Object.assign(new Error(res.error), { code: res.code });
       if (!res.communities.length) {
         throw new Error('Не нашёл сообществ, где вы администратор. Создайте сообщество во ВКонтакте или подключите его по ключу доступа.');
       }
@@ -101,6 +106,7 @@ export default function NewBotWizard({ onClose, onDone }) {
       setVkMode('list');
     } catch (e) {
       setError(e.message);
+      if (e.code === 'groups_unavailable') setVkMode('link'); // список недоступен — продолжаем по ссылке
     } finally {
       setBusy(null);
     }
@@ -113,6 +119,33 @@ export default function NewBotWizard({ onClose, onDone }) {
       const { token: key, expiresIn } = await loginCommunity(c.id); // тоже открывает окно синхронно
       await finishVk(key, expiresIn);
     } catch (e) {
+      setError(e.message);
+      setBusy(null);
+    }
+  };
+
+  // сообщество по ссылке/ID: список не нужен, достаточно OAuth сообщества
+  const connectVkByLink = async () => {
+    setError('');
+    const ref = parseCommunityRef(vkLink);
+    if (ref.error) {
+      setError(ref.error);
+      return;
+    }
+    setBusy('vk-link');
+    let popup;
+    try {
+      popup = openPopup(); // сразу, пока браузер считает это кликом
+      let id = ref.id;
+      if (!id) {
+        const resolved = await vkResolveCommunity(ref.screenName);
+        if (!resolved.ok) throw new Error(resolved.error);
+        id = resolved.id;
+      }
+      const { token: key, expiresIn } = await loginCommunity(id, popup);
+      await finishVk(key, expiresIn);
+    } catch (e) {
+      if (popup && !popup.closed) popup.close();
       setError(e.message);
       setBusy(null);
     }
@@ -278,9 +311,21 @@ export default function NewBotWizard({ onClose, onDone }) {
                     Бот будет отвечать от имени вашего сообщества. Название возьмём из ВКонтакте автоматически
                   </p>
                   <div className="wizard__form">
-                    {VK_APP_ID ? (
+                    {GROUPS_LIST && (
                       <button className="btn btn--primary wizard__submit" onClick={loginVk} disabled={locked}>
-                        {busy === 'vk-login' ? 'Жду вход в окне ВКонтакте…' : busy === 'vk-list' ? 'Загружаю сообщества…' : 'Выбрать сообщество через ВКонтакте'}
+                        {busy === 'vk-login' ? 'Жду вход в окне ВКонтакте…' : busy === 'vk-list' ? 'Загружаю сообщества…' : 'Выбрать из моих сообществ'}
+                      </button>
+                    )}
+                    {VK_APP_ID ? (
+                      <button
+                        className={`btn wizard__submit${GROUPS_LIST ? '' : ' btn--primary'}`}
+                        onClick={() => {
+                          setError('');
+                          setVkMode('link');
+                        }}
+                        disabled={locked}
+                      >
+                        Указать ссылку на сообщество
                       </button>
                     ) : (
                       <p className="wizard__hint">
@@ -324,6 +369,45 @@ export default function NewBotWizard({ onClose, onDone }) {
                   </div>
                   {error && <p className="wizard__error wizard__error--center">{error}</p>}
                   {busy?.startsWith('vk-') && <p className="wizard__hint">Подтвердите доступ в окне ВКонтакте…</p>}
+                </>
+              )}
+
+              {vkMode === 'link' && (
+                <>
+                  <p className="wizard__subtitle">
+                    Вставьте ссылку на сообщество или его ID, затем подтвердите доступ во ВКонтакте. Вы должны быть администратором
+                    этого сообщества
+                  </p>
+                  <div className="wizard__form">
+                    <input
+                      className="input"
+                      value={vkLink}
+                      onChange={(e) => {
+                        setVkLink(e.target.value);
+                        setError('');
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && !busy && connectVkByLink()}
+                      placeholder="vk.com/club123456 или 123456"
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      disabled={locked}
+                    />
+                    {error && <p className="wizard__error">{error}</p>}
+                    <button className="btn btn--primary wizard__submit" onClick={connectVkByLink} disabled={locked || !vkLink.trim()}>
+                      {busy === 'vk-link' ? 'Жду подтверждения в окне ВКонтакте…' : 'Продолжить через ВКонтакте'}
+                    </button>
+                  </div>
+                  <button
+                    className="wizard__skip"
+                    onClick={() => {
+                      setError('');
+                      setVkMode('manual');
+                    }}
+                    disabled={locked}
+                  >
+                    У меня есть ключ доступа сообщества
+                  </button>
                 </>
               )}
 
