@@ -209,16 +209,22 @@ async function handleUpdate(bot, update) {
     await Promise.allSettled(pending);
     return;
   }
-  // первое сообщение принято за /start, но в сценарии такого события нет —
+  // «Начать» / первое сообщение / /start, но события «Команда /start» в сценарии нет —
   // тогда это обычный текст (пусть сработает событие «Любой текст», если оно есть)
-  if (implicitStart) {
-    const hasStart = mainFlow.graph?.nodes?.some(
-      (n) => n.type === 'event' && n.data?.triggerType === 'command' && n.data?.value === '/start'
+  const events = (mainFlow.graph?.nodes ?? []).filter((n) => n.type === 'event').map((n) => `${n.data?.triggerType}:${n.data?.value ?? ''}`);
+  if (trigger.type === 'command' && trigger.value === '/start') {
+    const hasStart = (mainFlow.graph?.nodes ?? []).some(
+      (n) =>
+        n.type === 'event' &&
+        n.data?.triggerType === 'command' &&
+        String(n.data?.value ?? '').trim().toLowerCase().replace(/^\/?/, '/') === '/start'
     );
     if (!hasStart) trigger = { type: 'text', value: text };
   }
 
-  console.log(`vk-webhook: ${update.type} peer=${peerId} trigger=${JSON.stringify(trigger)} text=${JSON.stringify(text.slice(0, 60))}`);
+  console.log(
+    `vk-webhook: ${update.type} peer=${peerId} trigger=${JSON.stringify(trigger)} text=${JSON.stringify(text.slice(0, 60))} события_в_сценарии=${JSON.stringify(events)}`
+  );
 
   const runFlowSource =
     trigger.type === 'resume'

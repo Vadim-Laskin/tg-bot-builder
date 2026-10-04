@@ -54,6 +54,8 @@ function friendlyError(error) {
 const isRestricted = (error) => error?.error_code === 1051;
 const MANUAL_HINT =
   'ВКонтакте не разрешает этому ключу настраивать Callback API автоматически (ошибка 1051). Подключите сервер вручную — инструкция в «🔑 Ключи бота». Или создайте ключ вручную (Управление → Работа с API → Ключи доступа) и нажмите «Подключить сообщество» ещё раз.';
+const RESTRICTED_KEY_HINT =
+  'ВКонтакте выдал через вход ключ, который не умеет работать с сообщениями (ошибка 1051), — бот с таким ключом не сможет отвечать. Создайте ключ вручную: сообщество → Управление → Работа с API → Ключи доступа → «Создать ключ», отметьте «Сообщения сообщества» и «Управление сообществом» — и вставьте его в «У меня есть ключ доступа».';
 const fail = (error) =>
   isRestricted(error) ? json(400, { code: 'manual_required', error: MANUAL_HINT }) : json(400, { error: friendlyError(error) });
 
@@ -70,6 +72,11 @@ async function verify(token) {
   if (!g?.id) {
     return json(400, { error: 'Это ключ не сообщества. Создайте ключ в Управление → Работа с API → Ключи доступа.' });
   }
+
+  // умеет ли этот ключ вообще работать с сообщениями: ключи, выданные через вход, на
+  // некоторых приложениях получают 1051 на любой метод сообщений
+  const probe = await vkCall('messages.getConversations', { count: 1 }, token);
+  if (isRestricted(probe.error)) return json(400, { code: 'token_restricted', error: RESTRICTED_KEY_HINT });
 
   return json(200, {
     group: {
@@ -177,6 +184,13 @@ async function status(supabase, botId) {
     return json(200, { checks });
   }
   add(true, 'Ключ сообщества работает');
+
+  const probe = await vkCall('messages.getConversations', { count: 1 }, token);
+  add(
+    !isRestricted(probe.error),
+    'Ключ умеет отправлять и читать сообщения',
+    RESTRICTED_KEY_HINT
+  );
 
   // отвечает ли наш приёмник событий (проверяет и переменные Netlify, и доступ к базе, и ключ)
   try {
