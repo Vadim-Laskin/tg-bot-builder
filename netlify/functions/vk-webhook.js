@@ -35,7 +35,7 @@ export const handler = async (event) => {
 
   const { data: bot, error: botErr } = await supabaseAdmin
     .from('bots')
-    .select('id, platform, vk_group_id, vk_token, vk_secret, groq_api_key, global_variables, global_tags, flows(*)')
+    .select('id, platform, vk_group_id, vk_token, vk_secret, vk_confirmation, groq_api_key, global_variables, global_tags, flows(*)')
     .eq('id', botId)
     .single();
 
@@ -46,10 +46,15 @@ export const handler = async (event) => {
 
   // Подтверждение адреса сервера: отвечаем строкой, которую выдаёт сам VK.
   if (update.type === 'confirmation') {
+    // сервер подключён вручную — строку подтверждения человек сохранил сам (ключу сообщества
+    // ВК иногда не разрешает читать её через API)
+    if (bot.vk_confirmation) {
+      return { statusCode: 200, headers: { 'Content-Type': 'text/plain' }, body: bot.vk_confirmation.trim() };
+    }
     const res = await vkCall('groups.getCallbackConfirmationCode', { group_id: bot.vk_group_id }, bot.vk_token);
     const code = res.response?.code;
     if (!code) {
-      console.error('vk-webhook: no confirmation code', res.error?.error_msg);
+      console.error('vk-webhook: no confirmation code —', res.error?.error_msg, '(сохраните строку подтверждения вручную в «Ключах бота»)');
       return { statusCode: 500, body: 'no confirmation code' };
     }
     return { statusCode: 200, headers: { 'Content-Type': 'text/plain' }, body: String(code) };
@@ -130,6 +135,7 @@ async function handleUpdate(bot, update) {
   else if (text) logIn(text);
 
   let trigger;
+  let implicitStart = false;
   let quickReplyText;
   let capturedReply;
 
@@ -158,8 +164,15 @@ async function handleUpdate(bot, update) {
   } else if (text && stateRow?.pending_capture) {
     capturedReply = stateRow.pending_capture;
     trigger = { type: 'resume', nodeId: capturedReply.nodeId, handle: 'default' };
-  } else if (payload?.command === 'start' || /^(\/start|начать)$/i.test(text.trim())) {
-    // у VK нет /start — его роль играет кнопка «Начать» в новом диалоге с сообществом
+  } else if (
+    payload?.command === 'start' ||
+    /^(\/start|начать)$/i.test(text.trim()) ||
+    (!stateRow && !isConversation && !text.startsWith('/'))
+  ) {
+    // у VK нет /start — его роль играет кнопка «Начать» в новом диалоге с сообществом.
+    // А если человек просто написал первое сообщение, не нажав «Начать», считаем это тем же
+    // самым: иначе бот молчал бы, пока пользователь не угадает нужное слово.
+    implicitStart = !(payload?.command === 'start' || /^(\/start|начать)$/i.test(text.trim()));
     trigger = { type: 'command', value: '/start' };
   } else if (text.startsWith('/')) {
     trigger = { type: 'command', value: text.split(' ')[0] };
@@ -196,6 +209,17 @@ async function handleUpdate(bot, update) {
     await Promise.allSettled(pending);
     return;
   }
+  // первое сообщение принято за /start, но в сценарии такого события нет —
+  // тогда это обычный текст (пусть сработает событие «Любой текст», если оно есть)
+  if (implicitStart) {
+    const hasStart = mainFlow.graph?.nodes?.some(
+      (n) => n.type === 'event' && n.data?.triggerType === 'command' && n.data?.value === '/start'
+    );
+    if (!hasStart) trigger = { type: 'text', value: text };
+  }
+
+  console.log(`vk-webhook: ${update.type} peer=${peerId} trigger=${JSON.stringify(trigger)} text=${JSON.stringify(text.slice(0, 60))}`);
+
   const runFlowSource =
     trigger.type === 'resume'
       ? bot.flows.find((f) => f.graph?.nodes?.some((n) => n.id === trigger.nodeId)) ?? mainFlow
@@ -203,7 +227,9 @@ async function handleUpdate(bot, update) {
 
   const api = {
     ...buildVkApi({ vk, botId, pending }),
-    ...buildCommonApi({ groqApiKey: bot.groq_api_key, flows: bot.flows })
+    ...buildCommonApi({ groqApiKey: bot.groq_api_key, flows: bot.flows }),
+    // попадает в Netlify → Logs → Functions: видно, почему сценарий «молчит»
+    log: (m) => console.log('[flow]', m)
   };
 
   try {
