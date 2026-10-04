@@ -38,3 +38,9 @@ export const vkListCommunities = (auth) => callFunction('vk-auth', auth);
 
 // короткий адрес (vk.com/mygroup) → числовой id → { ok, id }
 export const vkResolveCommunity = (screenName) => callFunction('vk-auth', { action: 'resolve', screenName });
+
+// диагностика подключения → { ok, checks: [{ ok, title, hint, soft }] }
+export const vkCheckBot = (botId) => callFunction('vk-connect', { action: 'status', botId });
+
+// адрес приёмника событий этого бота — его вписывают в Callback API сообщества
+export const vkCallbackUrl = (botId) => `${window.location.origin}/.netlify/functions/vk-webhook?botId=${botId}`;
