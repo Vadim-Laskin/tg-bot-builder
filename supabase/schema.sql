@@ -23,6 +23,12 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- профили для тех, кто зарегистрировался до появления триггера выше
+-- (без строки в profiles приложение не находит профиль и пишет 406)
+insert into public.profiles (id, email)
+select id, email from auth.users
+on conflict (id) do nothing;
+
 -- 2. Боты
 create table if not exists public.bots (
   id uuid primary key default gen_random_uuid(),
@@ -198,3 +204,19 @@ create policy "bot_chats: owner can update" on public.bot_chats
   ) with check (
     exists (select 1 from public.bots b where b.id = bot_chats.bot_id and b.user_id = auth.uid())
   );
+
+-- ---------- ВКонтакте: второй мессенджер ----------
+-- platform: 'telegram' | 'vk'. У VK-бота токена Telegram нет, а вместо него —
+-- ключ доступа сообщества (vk_token), id сообщества и секрет, которым VK
+-- подписывает свои события (vk_secret).
+alter table public.bots add column if not exists platform text not null default 'telegram'
+  check (platform in ('telegram', 'vk'));
+alter table public.bots add column if not exists vk_group_id text not null default '';
+alter table public.bots add column if not exists vk_token text not null default '';
+alter table public.bots add column if not exists vk_secret text not null default '';
+-- id последнего обработанного события VK: повторную доставку того же события пропускаем
+alter table public.chat_state add column if not exists last_event_id text;
+
+-- ВКонтакте: строка подтверждения Callback API, если сервер подключён вручную
+-- (когда ключ не может настроить Callback API через API — ошибка 1051)
+alter table public.bots add column if not exists vk_confirmation text not null default '';
