@@ -28,6 +28,7 @@ function mapBot(row) {
     vkGroupId: row.vk_group_id ?? '',
     vkToken: row.vk_token ?? '',
     vkSecret: row.vk_secret ?? '',
+    vkConfirmation: row.vk_confirmation ?? '',
     groqApiKey: row.groq_api_key ?? '',
     createdAt: row.created_at,
     variableDefs: row.variable_defs ?? [], // [{id, name, scope}]
@@ -145,7 +146,7 @@ export const useBotStore = create((set, get) => ({
     if (error) console.error('renameBot:', error.message);
   },
 
-  async setBotSecrets(botId, { telegramToken, groqApiKey, vkToken, vkGroupId }) {
+  async setBotSecrets(botId, { telegramToken, groqApiKey, vkToken, vkGroupId, vkConfirmation }) {
     set((s) => ({
       bots: s.bots.map((b) =>
         b.id === botId
@@ -154,7 +155,8 @@ export const useBotStore = create((set, get) => ({
               telegramToken: telegramToken ?? b.telegramToken,
               groqApiKey: groqApiKey ?? b.groqApiKey,
               vkToken: vkToken ?? b.vkToken,
-              vkGroupId: vkGroupId ?? b.vkGroupId
+              vkGroupId: vkGroupId ?? b.vkGroupId,
+              vkConfirmation: vkConfirmation ?? b.vkConfirmation
             }
           : b
       )
@@ -164,6 +166,7 @@ export const useBotStore = create((set, get) => ({
     if (groqApiKey !== undefined) patch.groq_api_key = groqApiKey;
     if (vkToken !== undefined) patch.vk_token = vkToken;
     if (vkGroupId !== undefined) patch.vk_group_id = vkGroupId;
+    if (vkConfirmation !== undefined) patch.vk_confirmation = vkConfirmation;
     const { error } = await supabase.from('bots').update(patch).eq('id', botId);
     if (error) console.error('setBotSecrets:', error.message);
   },
