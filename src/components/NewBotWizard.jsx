@@ -85,7 +85,7 @@ export default function NewBotWizard({ onClose, onDone }) {
     // Вебхук подключаем сразу; если не вышло (например, локальный npm run dev),
     // не страшно — это можно сделать позже в «🔑 Ключи бота».
     const wh = await connectWebhook(id);
-    setCreated({ id, name, handle: info.bot.username && `@${info.bot.username}`, notes: wh.ok ? [] : [WEBHOOK_LATER] });
+    setCreated({ id, name, handle: info.bot.username && `@${info.bot.username}`, notes: wh.ok ? [] : [WEBHOOK_LATER], alerts: [] });
     setBusy(null);
     setStep('template');
   };
@@ -187,8 +187,9 @@ export default function NewBotWizard({ onClose, onDone }) {
     }
 
     const notes = [];
+    const alerts = []; // то, из-за чего бот не будет получать сообщения — показываем крупно
     const conn = await vkConnectBot(id);
-    if (!conn.ok) notes.push(`Сообщество пока не подключено к боту: ${conn.error} Это можно повторить позже: бот → «🔑 Ключи бота».`);
+    if (!conn.ok) alerts.push(conn.error); // для manual_required текст уже объясняет, что делать
     else notes.push(...(conn.warnings ?? []));
 
     if (expiresIn > 0) {
@@ -198,7 +199,7 @@ export default function NewBotWizard({ onClose, onDone }) {
       );
     }
 
-    setCreated({ id, name: group.name, handle: group.screenName && `@${group.screenName}`, notes });
+    setCreated({ id, name: group.name, handle: group.screenName && `@${group.screenName}`, notes, alerts });
     setBusy(null);
     setStep('template');
   };
@@ -452,6 +453,18 @@ export default function NewBotWizard({ onClose, onDone }) {
                 ✅ {created.name}
                 {created.handle && <span> · {created.handle}</span>}
               </div>
+              {created.alerts.length > 0 && (
+                <div className="wizard__alert" role="alert">
+                  <b>Бот создан, но ВКонтакте пока не отправляет ему сообщения.</b>
+                  {created.alerts.map((a, i) => (
+                    <p key={i}>{a}</p>
+                  ))}
+                  <p>
+                    Выберите шаблон и откройте бота → «🔑 Ключи бота»: вставьте ключ с нужными правами, нажмите «🔌 Подключить
+                    сообщество» и «🩺 Проверить подключение».
+                  </p>
+                </div>
+              )}
               <h2 className="wizard__title">Выберите шаблон для чат-бота</h2>
               <p className="wizard__subtitle">
                 Мы преднастроим его, чтобы вы смогли быстро попробовать нужный функционал
