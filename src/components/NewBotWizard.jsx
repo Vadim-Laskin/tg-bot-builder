@@ -165,6 +165,7 @@ export default function NewBotWizard({ onClose, onDone }) {
     if (!verified.ok) {
       setError(verified.error);
       setBusy(null);
+      if (verified.code === 'token_restricted') setVkMode('manual'); // ключ из входа не годится — вручную
       return;
     }
     const { group } = verified;
@@ -312,40 +313,35 @@ export default function NewBotWizard({ onClose, onDone }) {
                     Бот будет отвечать от имени вашего сообщества. Название возьмём из ВКонтакте автоматически
                   </p>
                   <div className="wizard__form">
+                    <button
+                      className="btn btn--primary wizard__submit"
+                      onClick={() => {
+                        setError('');
+                        setVkMode('manual');
+                      }}
+                      disabled={locked}
+                    >
+                      Подключить по ключу доступа
+                    </button>
                     {GROUPS_LIST && (
-                      <button className="btn btn--primary wizard__submit" onClick={loginVk} disabled={locked}>
+                      <button className="btn wizard__submit" onClick={loginVk} disabled={locked}>
                         {busy === 'vk-login' ? 'Жду вход в окне ВКонтакте…' : busy === 'vk-list' ? 'Загружаю сообщества…' : 'Выбрать из моих сообществ'}
                       </button>
                     )}
-                    {VK_APP_ID ? (
-                      <button
-                        className={`btn wizard__submit${GROUPS_LIST ? '' : ' btn--primary'}`}
-                        onClick={() => {
-                          setError('');
-                          setVkMode('link');
-                        }}
-                        disabled={locked}
-                      >
-                        Указать ссылку на сообщество
-                      </button>
-                    ) : (
-                      <p className="wizard__hint">
-                        Вход через ВКонтакте на этом сайте не настроен (нет <code>VITE_VK_APP_ID</code>) — подключите сообщество по
-                        ключу доступа.
-                      </p>
-                    )}
                     {error && <p className="wizard__error">{error}</p>}
                   </div>
-                  <button
-                    className="wizard__skip"
-                    onClick={() => {
-                      setError('');
-                      setVkMode('manual');
-                    }}
-                    disabled={locked}
-                  >
-                    У меня есть ключ доступа сообщества
-                  </button>
+                  {VK_APP_ID && (
+                    <button
+                      className="wizard__skip"
+                      onClick={() => {
+                        setError('');
+                        setVkMode('link');
+                      }}
+                      disabled={locked}
+                    >
+                      Подключить по ссылке на сообщество (через вход ВКонтакте)
+                    </button>
+                  )}
                 </>
               )}
 
@@ -418,7 +414,8 @@ export default function NewBotWizard({ onClose, onDone }) {
                   <ol className="wizard__steps">
                     <li>Откройте сообщество → <b>Управление</b> → <b>Работа с API</b> → <b>Ключи доступа</b></li>
                     <li>
-                      Нажмите «Создать ключ» и отметьте <b>«Сообщения сообщества»</b> и <b>«Управление сообществом»</b>
+                      Нажмите «Создать ключ» и <b>отметьте ВСЕ доступные галочки</b>. С частью прав ВКонтакте отвечает ошибкой 1051 — со всеми
+                      работает
                     </li>
                     <li>Скопируйте ключ и вставьте ниже</li>
                   </ol>
