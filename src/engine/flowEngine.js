@@ -68,8 +68,12 @@ function matchesTrigger(eventData, trigger) {
   if (trigger.type === 'schedule') return true;
   if (trigger.type === 'text') return true; // plain text events pass through; real
   // deployments should let a "text" event carry an optional regex in eventData.value
+  if (trigger.type === 'command') return normalizeCommand(eventData.value) === normalizeCommand(trigger.value);
   return eventData.value === trigger.value;
 }
+
+// «/Start», «start» и « /start » — одна и та же команда
+const normalizeCommand = (v) => String(v ?? '').trim().toLowerCase().replace(/^\/?/, '/');
 
 async function walk(node, graph, context, api, steps, visitedThisPass) {
   if (steps >= MAX_STEPS) {
