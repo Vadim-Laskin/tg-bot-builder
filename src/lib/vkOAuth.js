@@ -148,7 +148,8 @@ export async function loginCommunity(groupId, preOpened) {
       group_ids: String(groupId),
       redirect_uri: vkRedirectUri(),
       display: 'popup',
-      scope: 'messages,manage',
+      // все права, которые ВКонтакте вообще разрешает для ключей сообщества (по документации VK ID)
+      scope: 'manage,messages,photos,docs',
       response_type: 'token',
       v: VK_API_VERSION,
       state
