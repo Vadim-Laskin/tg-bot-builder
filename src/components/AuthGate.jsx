@@ -11,6 +11,8 @@ export default function AuthGate({ children }) {
   const init = useAuthStore((s) => s.init);
   const fetchBots = useBotStore((s) => s.fetchBots);
   const fetchTemplates = useTemplateStore((s) => s.fetchTemplates);
+  const profile = useAuthStore((s) => s.profile);
+  const signOut = useAuthStore((s) => s.signOut);
 
   useEffect(() => {
     if (isSupabaseConfigured) init();
@@ -48,6 +50,22 @@ export default function AuthGate({ children }) {
 
   if (!session) {
     return <AuthForm />;
+  }
+
+  if (profile?.blocked) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, margin: '0 0 8px' }}>Аккаунт заблокирован</h2>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-dim)' }}>
+            Доступ к конструктору закрыт администратором, ваши боты приостановлены. Если это ошибка — напишите в поддержку.
+          </p>
+          <button className="btn" onClick={signOut}>
+            Выйти
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return children;

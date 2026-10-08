@@ -2,33 +2,15 @@ import { useState } from 'react';
 import { useTemplateStore } from '../store/useTemplateStore.js';
 import { useBotStore } from '../store/useBotStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
-import Modal from './Modal.jsx';
+import NewBotWizard from './NewBotWizard.jsx';
 
-export default function TemplatesGallery({ onOpenBot }) {
+// Пользователи шаблоны только используют. Создают и правят их админы — в «Админке».
+export default function TemplatesGallery({ onOpenBot, onOpenAdmin }) {
   const templates = useTemplateStore((s) => s.templates);
-  const removeTemplate = useTemplateStore((s) => s.removeTemplate);
-  const addTemplate = useTemplateStore((s) => s.addTemplate);
   const isAdmin = useAuthStore((s) => Boolean(s.profile?.is_admin));
-
-  const bots = useBotStore((s) => s.bots);
-  const createBot = useBotStore((s) => s.createBot);
-  const updateFlowGraph = useBotStore((s) => s.updateFlowGraph);
   const setActiveBot = useBotStore((s) => s.setActiveBot);
 
-  const [addOpen, setAddOpen] = useState(false);
-
-  const useTemplate = async (tpl) => {
-    const botId = await createBot(`${tpl.name} (из шаблона)`);
-    if (!botId) return;
-    const bot = useBotStore.getState().bots.find((b) => b.id === botId);
-    const mainFlow = bot.flows[0];
-    updateFlowGraph(botId, mainFlow.id, {
-      nodes: structuredClone(tpl.nodes),
-      edges: structuredClone(tpl.edges)
-    });
-    setActiveBot(botId);
-    onOpenBot();
-  };
+  const [preset, setPreset] = useState(null);
 
   return (
     <div className="page">
@@ -38,8 +20,8 @@ export default function TemplatesGallery({ onOpenBot }) {
           <p className="page__subtitle">Готовые сценарии — используйте как основу для нового бота.</p>
         </div>
         {isAdmin && (
-          <button className="btn btn--primary" onClick={() => setAddOpen(true)}>
-            + Добавить шаблон
+          <button className="btn" onClick={onOpenAdmin}>
+            Управление шаблонами → Админка
           </button>
         )}
       </div>
@@ -51,81 +33,26 @@ export default function TemplatesGallery({ onOpenBot }) {
             <div className="template-card__desc">{tpl.description}</div>
             <div className="template-card__meta">{tpl.nodes.length} блоков</div>
             <div className="template-card__actions">
-              <button className="btn btn--primary btn--sm" onClick={() => useTemplate(tpl)}>
+              <button className="btn btn--primary btn--sm" onClick={() => setPreset(tpl)}>
                 Использовать
               </button>
-              {isAdmin && (
-                <button className="btn btn--sm btn--danger" onClick={() => removeTemplate(tpl.id)}>
-                  Удалить
-                </button>
-              )}
             </div>
           </div>
         ))}
-        {templates.length === 0 && (
-          <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>
-            Шаблонов пока нет{isAdmin ? ' — добавьте первый.' : '.'}
-          </p>
-        )}
+        {templates.length === 0 && <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>Шаблонов пока нет.</p>}
       </div>
 
-      {addOpen && (
-        <Modal title="Добавить шаблон из бота" onClose={() => setAddOpen(false)}>
-          <AddTemplateForm bots={bots} onAdd={addTemplate} onClose={() => setAddOpen(false)} />
-        </Modal>
+      {preset && (
+        <NewBotWizard
+          preset={preset}
+          onClose={() => setPreset(null)}
+          onDone={(id) => {
+            setPreset(null);
+            setActiveBot(id);
+            onOpenBot();
+          }}
+        />
       )}
-    </div>
-  );
-}
-
-function AddTemplateForm({ bots, onAdd, onClose }) {
-  const allFlows = bots.flatMap((b) => b.flows.map((f) => ({ ...f, botName: b.name })));
-  const [flowId, setFlowId] = useState(allFlows[0]?.id ?? '');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    const flow = allFlows.find((f) => f.id === flowId);
-    if (!flow || !name.trim()) return;
-    setBusy(true);
-    await onAdd({ name, description, nodes: structuredClone(flow.nodes), edges: structuredClone(flow.edges) });
-    setBusy(false);
-    onClose();
-  };
-
-  if (allFlows.length === 0) {
-    return <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>Сначала создайте хотя бы одного бота со сценарием.</p>;
-  }
-
-  return (
-    <div>
-      <div className="field">
-        <span className="field__label">Сценарий-источник</span>
-        <select className="select" value={flowId} onChange={(e) => setFlowId(e.target.value)}>
-          {allFlows.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.botName} → {f.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field">
-        <span className="field__label">Название шаблона</span>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="field">
-        <span className="field__label">Описание</span>
-        <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} />
-      </div>
-      <div className="modal__actions">
-        <button className="btn btn--sm" onClick={onClose}>
-          Отмена
-        </button>
-        <button className="btn btn--primary btn--sm" onClick={submit} disabled={busy}>
-          {busy ? 'Публикую…' : 'Опубликовать'}
-        </button>
-      </div>
     </div>
   );
 }

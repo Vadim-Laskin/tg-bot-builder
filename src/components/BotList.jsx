@@ -30,7 +30,11 @@ export default function BotList({ onOpenBot }) {
         </div>
         {bots.map((bot) => (
           <div className="bot-card" key={bot.id} onClick={() => open(bot.id)}>
-            <div className="bot-card__name">{bot.name}</div>
+            <div className="bot-card__name">
+              {bot.name}
+              {bot.status === 'frozen' && <span className="badge badge--warn" style={{ marginLeft: 8 }}>заморожен</span>}
+              {bot.status === 'disabled' && <span className="badge badge--bad" style={{ marginLeft: 8 }}>отключён</span>}
+            </div>
             <div className="bot-card__meta">
               {bot.flows.length} {bot.flows.length === 1 ? 'сценарий' : 'сценариев'} ·{' '}
               {platformLabel(bot)} · {tokenStatusLabel(bot)}

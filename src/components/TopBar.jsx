@@ -25,6 +25,14 @@ export default function TopBar({ view, onNavigate }) {
         >
           Шаблоны
         </button>
+        {profile?.is_admin && (
+          <button
+            className={`topbar__nav-btn${view === 'admin' ? ' is-active' : ''}`}
+            onClick={() => onNavigate('admin')}
+          >
+            Админка
+          </button>
+        )}
       </div>
 
       {profile && (

@@ -42,6 +42,14 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
         ← Боты
       </button>
 
+      {bot.status && bot.status !== 'active' && (
+        <div className={`bot-banner bot-banner--${bot.status}`}>
+          <b>{bot.status === 'frozen' ? 'Бот заморожен администратором.' : 'Бот отключён администратором.'}</b> Он не отвечает пользователям
+          {bot.status === 'disabled' ? ', а сценарии нельзя редактировать' : ''}.
+          {bot.statusReason && <> Причина: {bot.statusReason}</>}
+        </div>
+      )}
+
       <div className="page__header">
         <div>
           <h1

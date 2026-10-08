@@ -20,7 +20,7 @@ const GROUPS_LIST = VK_APP_ID && import.meta.env.VITE_VK_GROUPS_ACCESS === '1';
 const WEBHOOK_LATER = 'Вебхук пока не подключён (это нормально при локальном запуске). Его можно подключить позже: бот → «🔑 Ключи бота».';
 
 // «+ Новый бот»: платформа → (Telegram: токен | ВКонтакте: сообщество) → шаблон.
-export default function NewBotWizard({ onClose, onDone }) {
+export default function NewBotWizard({ onClose, onDone, preset }) {
   const bots = useBotStore((s) => s.bots);
   const createBot = useBotStore((s) => s.createBot);
   const applyStarterGraph = useBotStore((s) => s.applyStarterGraph);
@@ -40,6 +40,17 @@ export default function NewBotWizard({ onClose, onDone }) {
   const [vkKey, setVkKey] = useState('');
 
   const locked = !!busy || !!applying;
+
+  // человек выбрал готовый шаблон на вкладке «Шаблоны»: выбирать его второй раз не нужно
+  const presetTpl = preset && {
+    id: 'preset',
+    build: () => ({
+      nodes: preset.nodes,
+      edges: preset.edges,
+      variableDefs: preset.variableDefs ?? [],
+      tagDefs: preset.tagDefs ?? []
+    })
+  };
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && !locked && onClose();
@@ -206,6 +217,10 @@ export default function NewBotWizard({ onClose, onDone }) {
   };
 
   // ---------- шаблон ----------
+  useEffect(() => {
+    if (step === 'template' && presetTpl && created && !applying) pick(presetTpl);
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const pick = async (tpl) => {
     if (applying) return;
     setApplying(tpl?.id ?? 'empty');
@@ -236,7 +251,9 @@ export default function NewBotWizard({ onClose, onDone }) {
           {step === 'platform' && (
             <>
               <h2 className="wizard__title">Где будет работать бот?</h2>
-              <p className="wizard__subtitle">Сценарии и блоки одни и те же — выберите мессенджер</p>
+              <p className="wizard__subtitle">
+                {preset ? `Шаблон «${preset.name}» применится сам после подключения` : 'Сценарии и блоки одни и те же — выберите мессенджер'}
+              </p>
               <div className="wizard__grid">
                 {PLATFORMS.map((p) => (
                   <button
