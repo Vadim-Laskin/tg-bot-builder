@@ -34,7 +34,7 @@ export const handler = async (event) => {
 
   const { data: bot, error: botErr } = await supabaseAdmin
     .from('bots')
-    .select('id, telegram_token, groq_api_key, global_variables, global_tags, flows(*)')
+    .select('*, flows(*)') // * — чтобы не молчать, если колонки status ещё нет (схема не обновлена)
     .eq('id', botId)
     .single();
 
@@ -43,6 +43,12 @@ export const handler = async (event) => {
   if (botErr || !bot || !bot.telegram_token) {
     console.error('webhook: bot not found or has no token', botErr?.message);
     return { statusCode: 200, body: 'ignored' };
+  }
+
+  // админ заморозил или отключил бота — молчим (200, чтобы Telegram не повторял апдейт)
+  if (bot.status && bot.status !== 'active') {
+    console.log(`webhook: bot ${botId} is ${bot.status}, ignoring update`);
+    return { statusCode: 200, body: 'bot is not active' };
   }
 
   // channel posts arrive as their own update type, not as `message` —

@@ -35,7 +35,7 @@ export const handler = async (event) => {
 
   const { data: bot, error: botErr } = await supabaseAdmin
     .from('bots')
-    .select('id, platform, vk_group_id, vk_token, vk_secret, vk_confirmation, groq_api_key, global_variables, global_tags, flows(*)')
+    .select('*, flows(*)') // * — чтобы не молчать, если колонки status ещё нет
     .eq('id', botId)
     .single();
 
@@ -58,6 +58,12 @@ export const handler = async (event) => {
       return { statusCode: 500, body: 'no confirmation code' };
     }
     return { statusCode: 200, headers: { 'Content-Type': 'text/plain' }, body: String(code) };
+  }
+
+  // админ заморозил или отключил бота — молчим (подтверждение адреса выше при этом работает)
+  if (bot.status && bot.status !== 'active') {
+    console.log(`vk-webhook: bot ${botId} is ${bot.status}, ignoring update`);
+    return OK;
   }
 
   if (bot.vk_secret && update.secret !== bot.vk_secret) {
