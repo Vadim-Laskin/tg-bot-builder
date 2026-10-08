@@ -11,7 +11,9 @@ function mapTemplate(row) {
     name: row.name,
     description: row.description ?? '',
     nodes: row.graph?.nodes ?? [],
-    edges: row.graph?.edges ?? []
+    edges: row.graph?.edges ?? [],
+    variableDefs: row.variable_defs ?? [],
+    tagDefs: row.tag_defs ?? []
   };
 }
 
@@ -30,13 +32,20 @@ export const useTemplateStore = create((set, get) => ({
     set({ templates: data.map(mapTemplate), loading: false });
   },
 
-  async addTemplate({ name, description, nodes, edges }) {
+  async addTemplate({ name, description, nodes, edges, variableDefs = [], tagDefs = [] }) {
     const {
       data: { user }
     } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('templates')
-      .insert({ name, description, graph: { nodes, edges }, created_by: user?.id })
+      .insert({
+        name,
+        description,
+        graph: { nodes, edges },
+        variable_defs: variableDefs,
+        tag_defs: tagDefs,
+        created_by: user?.id
+      })
       .select()
       .single();
     if (error) {
@@ -46,6 +55,12 @@ export const useTemplateStore = create((set, get) => ({
     const tpl = mapTemplate(data);
     set((s) => ({ templates: [...s.templates, tpl] }));
     return tpl.id;
+  },
+
+  async updateTemplate(id, { name, description }) {
+    set((s) => ({ templates: s.templates.map((t) => (t.id === id ? { ...t, name, description } : t)) }));
+    const { error } = await supabase.from('templates').update({ name, description }).eq('id', id);
+    if (error) console.error('updateTemplate:', error.message);
   },
 
   async removeTemplate(id) {

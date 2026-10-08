@@ -30,6 +30,8 @@ function mapBot(row) {
     vkSecret: row.vk_secret ?? '',
     vkConfirmation: row.vk_confirmation ?? '',
     groqApiKey: row.groq_api_key ?? '',
+    status: row.status ?? 'active', // 'active' | 'frozen' | 'disabled' — меняет только админ
+    statusReason: row.status_reason ?? '',
     createdAt: row.created_at,
     variableDefs: row.variable_defs ?? [], // [{id, name, scope}]
     tagDefs: row.tag_defs ?? [], // [{id, name, color, scope}]
