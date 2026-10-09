@@ -283,6 +283,46 @@ export const useBotStore = create((set, get) => ({
     return flow.id;
   },
 
+  // Кладёт шаблон в уже существующего бота, ничего не стирая.
+  // mode 'main'  — блоки добавляются в основной сценарий ниже уже имеющихся;
+  // mode 'chain' — шаблон становится отдельной цепочкой (подключается блоком «Цепочка»).
+  async addTemplateToBot(botId, tpl, mode = 'main') {
+    const bot = get().bots.find((b) => b.id === botId);
+    const main = bot?.flows.find((f) => f.isMain) ?? bot?.flows[0];
+    if (!bot || !main) return false;
+
+    const merge = (old, add) => [...old, ...(add ?? []).filter((d) => !old.some((o) => o.id === d.id))];
+    const nextVars = merge(bot.variableDefs, tpl.variableDefs);
+    const nextTags = merge(bot.tagDefs, tpl.tagDefs);
+
+    if (mode === 'chain') {
+      const id = await get().importGraphIntoNewFlow(botId, {
+        name: tpl.name,
+        nodes: structuredClone(tpl.nodes),
+        edges: structuredClone(tpl.edges)
+      });
+      if (!id) return false;
+    } else {
+      // новые id, чтобы блоки шаблона не столкнулись с уже существующими
+      const prefix = `t${Math.random().toString(36).slice(2, 6)}_`;
+      const ids = new Set(tpl.nodes.map((n) => n.id));
+      const bottom = main.nodes.reduce((m, n) => Math.max(m, (n.position?.y ?? 0) + 260), 0);
+      const top = tpl.nodes.reduce((m, n) => Math.min(m, n.position?.y ?? 0), Infinity);
+      const nodes = tpl.nodes.map((n) => {
+        const data = structuredClone(n.data);
+        if (data.targetNodeId && ids.has(data.targetNodeId)) data.targetNodeId = prefix + data.targetNodeId;
+        return { ...structuredClone(n), id: prefix + n.id, data, position: { x: n.position.x, y: n.position.y - top + bottom } };
+      });
+      const edges = tpl.edges.map((e) => ({ ...structuredClone(e), id: prefix + e.id, source: prefix + e.source, target: prefix + e.target }));
+      get().updateFlowGraph(botId, main.id, { nodes: [...main.nodes, ...nodes], edges: [...main.edges, ...edges] });
+    }
+
+    set((st) => ({ bots: st.bots.map((b) => (b.id === botId ? { ...b, variableDefs: nextVars, tagDefs: nextTags } : b)) }));
+    const { error } = await supabase.from('bots').update({ variable_defs: nextVars, tag_defs: nextTags }).eq('id', botId);
+    if (error) console.error('addTemplateToBot:', error.message);
+    return true;
+  },
+
   getActiveBot() {
     return get().bots.find((b) => b.id === get().activeBotId) ?? null;
   },
