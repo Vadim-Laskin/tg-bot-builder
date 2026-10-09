@@ -4,7 +4,7 @@ import SecretsForm from './SecretsForm.jsx';
 import { useBotStore } from '../store/useBotStore.js';
 import { platformLabel, tokenStatusLabel } from '../lib/platform.js';
 
-export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, onBack }) {
+export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, onBack, onOpenBroadcasts }) {
   const bot = useBotStore((s) => s.getActiveBot());
   const setActiveFlow = useBotStore((s) => s.setActiveFlow);
   const addChainFlow = useBotStore((s) => s.addChainFlow);
@@ -68,6 +68,9 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn" onClick={onOpenUsers}>
             👥 Пользователи
+          </button>
+          <button className="btn" onClick={onOpenBroadcasts}>
+            📢 Рассылки
           </button>
           <button className="btn" onClick={onOpenChannels}>
             💬 Группы и каналы
