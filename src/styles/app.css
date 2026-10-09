@@ -2411,3 +2411,65 @@
   background: var(--danger-soft);
   border: 1px solid var(--danger);
 }
+
+.bcast-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.bcast-bar > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* предпросмотр шаблона */
+.tplp__desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.tplp__canvas {
+  height: min(55vh, 460px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* в предпросмотре кнопки только показываем */
+.tplp__canvas .tg-btn,
+.tplp__canvas .tg-add {
+  pointer-events: none;
+}
+
+.tplp__canvas .tg-add {
+  display: none;
+}
+
+.tplp__add {
+  margin-top: 8px;
+}
+
+.tplp__radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tplp__radio small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
