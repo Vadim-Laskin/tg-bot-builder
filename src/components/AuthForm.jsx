@@ -38,7 +38,7 @@ export default function AuthForm() {
       <form className="auth-card" onSubmit={submit}>
         <div className="topbar__brand" style={{ marginBottom: 22 }}>
           <span className="topbar__brand-mark" />
-          Flowbase
+          Chateon
         </div>
 
         <div className="field">

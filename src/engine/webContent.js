@@ -17,7 +17,7 @@ export function extractUrls(text, max = 3) {
 export async function fetchUrlContent(url, maxLength = 4000) {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FlowbaseBot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ChateonBot/1.0)' },
       redirect: 'follow'
     });
     if (!res.ok) return `(страница ответила ошибкой ${res.status})`;

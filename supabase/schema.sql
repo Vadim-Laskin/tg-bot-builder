@@ -1,4 +1,4 @@
--- Flowbase — схема Supabase.
+-- Chateon — схема Supabase.
 -- Выполнить целиком в Supabase Dashboard → SQL Editor → New query → Run.
 
 -- 1. Профиль пользователя (роль admin живёт здесь, не в токене)

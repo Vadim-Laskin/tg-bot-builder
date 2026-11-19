@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { vkCall, VK_API_VERSION } from '../lib/vkApi.js';
 
 const json = (statusCode, obj) => ({ statusCode, body: JSON.stringify(obj) });
-const SERVER_TITLE = 'Flowbase';
+const SERVER_TITLE = 'Chateon';
 
 async function main(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'method not allowed' });

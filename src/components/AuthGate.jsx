@@ -31,7 +31,7 @@ export default function AuthGate({ children }) {
         <div className="auth-card">
           <div className="topbar__brand" style={{ marginBottom: 14 }}>
             <span className="topbar__brand-mark" />
-            Flowbase
+            Chateon
           </div>
           <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-dim)' }}>
             Supabase не настроен. Скопируйте <code>.env.example</code> в <code>.env</code>, вставьте

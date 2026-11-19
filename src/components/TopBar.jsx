@@ -10,7 +10,7 @@ export default function TopBar({ view, onNavigate }) {
     <div className="topbar">
       <div className="topbar__brand">
         <span className="topbar__brand-mark" />
-        <span>Flowbase</span>
+        <span>Chateon</span>
       </div>
       <div className="topbar__nav">
         <button
