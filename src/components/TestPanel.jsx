@@ -184,12 +184,9 @@ export default function TestPanel({ graph, allFlows, onClose }) {
             </div>
           ) : (
             <div
-              className="test-msg"
+              className={`test-msg${it.kind === 'user' ? ' test-msg--user' : ''}`}
               key={it.id}
-              style={{
-                alignSelf: it.kind === 'user' ? 'flex-end' : 'flex-start',
-                borderLeftColor: it.kind === 'user' ? 'var(--wire-event)' : 'var(--wire-message)'
-              }}
+              style={{ alignSelf: it.kind === 'user' ? 'flex-end' : 'flex-start' }}
             >
               {it.toOtherChat && (
                 <div style={{ fontSize: 10, color: 'var(--wire-broadcast)', marginBottom: 3, fontWeight: 700 }}>

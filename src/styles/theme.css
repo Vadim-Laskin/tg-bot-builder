@@ -1,19 +1,17 @@
 /* Chateon design tokens.
-   Signature idea: the canvas reads like a circuit board — nodes are
-   components, edges are traces with a moving current. Category colors
-   act as "wire colors" so a flow's shape is readable at a glance. */
+   Палитра и шрифт те же, что на лендинге: глубокий синий фон, акцент #3b82f6,
+   стеклянные карточки и мягкое свечение. Холст по-прежнему читается как
+   схема: блоки — компоненты, стрелки — провода с бегущим током, а цвета
+   категорий («цвета проводов») показывают форму сценария с первого взгляда. */
 
 :root {
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Manrope', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
 
   /* wire colors — shared across themes so a flow looks the same shape
      in light or dark mode */
@@ -36,41 +34,57 @@
 }
 
 :root[data-theme='dark'] {
-  --bg: #0f1115;
-  --bg-canvas: #0b0d11;
-  --surface: #171a21;
-  --surface-2: #1f232c;
-  --surface-3: #262b35;
-  --border: #2a2f3a;
-  --border-strong: #3a4150;
-  --text: #e8eaed;
-  --text-dim: #9aa0ac;
-  --text-faint: #5b606c;
-  --accent: #6c5ce7;
-  --accent-soft: rgba(108, 92, 231, 0.16);
-  --danger: #e1526b;
-  --danger-soft: rgba(225, 82, 107, 0.14);
-  --grid-dot: rgba(255, 255, 255, 0.06);
-  --canvas-overlay: rgba(15, 17, 21, 0.6);
+  --bg: #050d24;
+  --bg-2: #0a1638;
+  --bg-canvas: #040a1d;
+  --surface: #0a1636;
+  --surface-2: #10204a;
+  --surface-3: #182b5e;
+  --card: rgba(70, 120, 255, 0.09);
+  --border: rgba(120, 160, 255, 0.18);
+  --border-strong: rgba(120, 160, 255, 0.36);
+  --text: #eef3ff;
+  --text-dim: #9db3ea;
+  --text-faint: #8296c4;
+  --accent: #3b82f6;
+  --accent-2: #60a5fa;
+  --accent-text: #60a5fa; /* акцент для текста и иконок на фоне темы */
+  --accent-deep: #1d4ed8;
+  --accent-soft: rgba(59, 130, 246, 0.2);
+  --glow: rgba(59, 130, 246, 0.42);
+  --danger: #f0607a;
+  --danger-soft: rgba(240, 96, 122, 0.16);
+  --grid-dot: rgba(130, 170, 255, 0.1);
+  --canvas-overlay: rgba(3, 8, 24, 0.72);
+  --shadow-1: 0 1px 2px rgba(2, 8, 30, 0.4);
+  --shadow-2: 0 18px 48px rgba(2, 8, 30, 0.6), 0 0 0 1px rgba(120, 160, 255, 0.08);
 }
 
 :root[data-theme='light'] {
-  --bg: #f5f6fa;
-  --bg-canvas: #eef0f6;
+  --bg: #f3f7ff;
+  --bg-2: #e4edff;
+  --bg-canvas: #eaf1ff;
   --surface: #ffffff;
-  --surface-2: #f2f3f8;
-  --surface-3: #e8eaf2;
-  --border: #e0e2ea;
-  --border-strong: #cdd0db;
-  --text: #1b1d22;
-  --text-dim: #666b78;
-  --text-faint: #9498a3;
-  --accent: #6c5ce7;
-  --accent-soft: rgba(108, 92, 231, 0.1);
-  --danger: #d63f5c;
-  --danger-soft: rgba(214, 63, 92, 0.08);
-  --grid-dot: rgba(20, 22, 30, 0.09);
-  --canvas-overlay: rgba(238, 240, 246, 0.6);
+  --surface-2: #f0f5ff;
+  --surface-3: #e2ebff;
+  --card: rgba(255, 255, 255, 0.78);
+  --border: rgba(40, 90, 220, 0.15);
+  --border-strong: rgba(40, 90, 220, 0.3);
+  --text: #0c1a40;
+  --text-dim: #4a5f94;
+  --text-faint: #5a6d9f;
+  --accent: #2563eb;
+  --accent-2: #3b82f6;
+  --accent-text: #1d4ed8;
+  --accent-deep: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --glow: rgba(37, 99, 235, 0.28);
+  --danger: #c8344f;
+  --danger-soft: rgba(214, 63, 92, 0.09);
+  --grid-dot: rgba(37, 80, 200, 0.14);
+  --canvas-overlay: rgba(228, 237, 255, 0.7);
+  --shadow-1: 0 1px 2px rgba(20, 50, 140, 0.1);
+  --shadow-2: 0 18px 48px rgba(30, 70, 190, 0.18), 0 0 0 1px rgba(40, 90, 220, 0.06);
 }
 
 * {

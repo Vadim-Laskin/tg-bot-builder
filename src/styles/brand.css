@@ -1,0 +1,503 @@
+/* Оформление в стиле лендинга Chateon.
+   Подключается после app.css и только меняет внешний вид: цвета, скругления,
+   стекло, свечение, состояния. Раскладку и поведение компонентов не трогает.
+   Цвета и размеры берём из токенов в theme.css — обе темы работают без правок здесь. */
+
+/* ---------- фон ---------- */
+
+body {
+  background: linear-gradient(180deg, var(--bg), var(--bg-2)) fixed;
+  letter-spacing: -0.003em;
+}
+
+/* два мягких пятна света, как на лендинге, но неподвижные — редактору не нужна анимация фона */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 420px at 0% 0%, var(--accent-soft), transparent 70%),
+    radial-gradient(460px 380px at 100% 70%, var(--accent-soft), transparent 70%);
+}
+
+.auth-screen {
+  background: transparent;
+}
+
+/* ---------- шапка ---------- */
+
+.topbar {
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom-color: var(--border);
+}
+
+.topbar__brand {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  gap: 9px;
+}
+
+/* логотип лендинга: пузырь-сердце с тремя точками, красится акцентом темы */
+.topbar__brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  background: var(--accent-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cpath d='M24 5C13 5 6 12 6 21c0 6 3 10 8 13l10 9 10-9c5-3 8-7 8-13 0-9-7-16-18-16Z' stroke='%23000' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='22' r='3' fill='%23000'/%3E%3Ccircle cx='24' cy='22' r='3' fill='%23000'/%3E%3Ccircle cx='32' cy='22' r='3' fill='%23000'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cpath d='M24 5C13 5 6 12 6 21c0 6 3 10 8 13l10 9 10-9c5-3 8-7 8-13 0-9-7-16-18-16Z' stroke='%23000' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='22' r='3' fill='%23000'/%3E%3Ccircle cx='24' cy='22' r='3' fill='%23000'/%3E%3Ccircle cx='32' cy='22' r='3' fill='%23000'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.topbar__nav-btn {
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 8px 14px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.topbar__nav-btn.is-active {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.theme-toggle {
+  background: var(--card);
+  border-color: var(--border);
+  transition: transform 0.45s, box-shadow 0.25s, border-color 0.25s;
+}
+
+.theme-toggle:hover {
+  transform: rotate(180deg);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+/* ---------- заголовки страниц ---------- */
+
+.page__title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.page__subtitle {
+  font-size: 14.5px;
+}
+
+/* ---------- кнопки ---------- */
+
+.btn {
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  background: var(--card);
+  border-color: var(--border);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.btn:hover {
+  border-color: var(--accent-2);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn--sm {
+  padding: 5px 11px;
+  border-radius: 9px;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 20px var(--glow);
+}
+
+.btn--primary:hover {
+  filter: none;
+  border-color: transparent;
+  box-shadow: 0 10px 28px var(--glow);
+}
+
+.btn--danger:hover {
+  transform: none;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- поля ---------- */
+
+.field__label {
+  letter-spacing: 0.05em;
+}
+
+.input,
+.textarea,
+.select,
+.chip-textarea {
+  background: var(--surface-2);
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.input:hover,
+.textarea:hover,
+.select:hover,
+.chip-textarea:hover {
+  border-color: var(--border-strong);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus,
+.chip-textarea:focus {
+  outline: none;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-faint);
+}
+
+/* ---------- карточки и списки ---------- */
+
+.bot-card,
+.flow-row,
+.template-card {
+  background: var(--card);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+.bot-card,
+.template-card {
+  padding: 20px;
+}
+
+.flow-row {
+  border-radius: var(--radius-md);
+}
+
+.bot-card:hover,
+.flow-row:hover,
+.template-card:hover {
+  border-color: var(--accent-2);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px var(--glow);
+}
+
+.bot-card__name,
+.template-card__name {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bot-card--new {
+  background: transparent;
+  border-width: 1.5px;
+  border-color: var(--border-strong);
+}
+
+.bot-card--new:hover {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+
+.flow-row__badge,
+.topbar__admin-badge {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.flow-row__arrow {
+  transition: transform 0.2s, color 0.2s;
+}
+
+.flow-row:hover .flow-row__arrow {
+  transform: translateX(3px);
+  color: var(--accent-text);
+}
+
+/* ---------- вход ---------- */
+
+.auth-card {
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  background: var(--surface);
+  border-color: var(--border-strong);
+  box-shadow: 0 30px 80px var(--glow);
+}
+
+/* ---------- модальные окна ---------- */
+
+.modal__backdrop {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.modal__box {
+  border-radius: var(--radius-lg);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.modal__title {
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.modal__close {
+  border-radius: 50%;
+}
+
+/* ---------- редактор: шапка, холст, блоки ---------- */
+
+.editor-topbar {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.editor-topbar__name {
+  font-weight: 800;
+}
+
+.add-block-fab {
+  box-shadow: 0 8px 24px var(--glow);
+}
+
+.node {
+  border-radius: var(--radius-md);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1), 0 6px 20px rgba(2, 8, 30, 0.12);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.node:hover {
+  border-color: var(--border-strong);
+}
+
+.node.is-selected {
+  border-color: var(--node-color, var(--accent));
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 10px 30px var(--glow);
+}
+
+/* шапка блока подкрашена цветом его категории — «цвет провода» виден сразу */
+.node__header {
+  background: color-mix(in srgb, var(--node-color, var(--accent)) 14%, var(--surface-2));
+  border-bottom-color: color-mix(in srgb, var(--node-color, var(--accent)) 28%, var(--border));
+}
+
+.node__dot {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--node-color, var(--accent)) 70%, transparent);
+}
+
+.node__title {
+  font-weight: 800;
+  font-size: 12.5px;
+}
+
+.node__button-chip {
+  background: var(--surface-3);
+  border-color: var(--border);
+}
+
+.react-flow__handle {
+  width: 13px;
+  height: 13px;
+  border-color: var(--surface);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--node-color, var(--accent)) 60%, transparent);
+  transition: transform 0.15s;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.25);
+}
+
+/* провода — цвет акцента, как пунктир на лендинге */
+.react-flow__edge-path {
+  stroke: var(--accent-2);
+  stroke-width: 1.8;
+  opacity: 0.6;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--accent-2);
+  opacity: 1;
+}
+
+.react-flow__controls {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+.react-flow__controls-button {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+  color: var(--text-dim);
+  fill: currentColor;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.react-flow__minimap {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* ---------- панель свойств и выбор блока ---------- */
+
+.properties {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-left-color: var(--border);
+}
+
+.properties__title {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.palette__block {
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.palette__block:hover {
+  background: var(--accent-soft);
+  border-color: var(--border-strong);
+}
+
+.palette__category-title {
+  color: var(--accent-text);
+}
+
+/* ---------- тестовый чат ---------- */
+
+.test-panel {
+  border-radius: var(--radius-lg);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.test-panel__header {
+  font-weight: 800;
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+
+/* как пузыри на лендинге: бот слева на панели, пользователь справа акцентным градиентом */
+.test-msg {
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 16px 5px;
+  background: var(--surface-2);
+  padding: 9px 12px;
+}
+
+.test-msg--user {
+  border-color: transparent;
+  border-radius: 16px 16px 5px 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff;
+}
+
+.test-msg__button {
+  border-radius: 10px;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.test-msg__button:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-2);
+  color: var(--accent-text);
+}
+
+/* ---------- таблицы админки ---------- */
+
+.admin-table-wrap {
+  border-radius: var(--radius-md);
+  border-color: var(--border);
+  background: var(--card);
+}
+
+.admin-table tbody tr {
+  transition: background 0.15s;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+/* ---------- мелочи ---------- */
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-2);
+  background-clip: padding-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .bot-card,
+  .flow-row,
+  .template-card,
+  .theme-toggle {
+    transform: none !important;
+  }
+}
