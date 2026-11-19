@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useTheme } from '../store/useTheme.js';
 
 const THEMES = [
@@ -11,7 +12,7 @@ export default function SettingsView({ onBack }) {
   return (
     <div className="page">
       <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>
-        ← Назад
+        <Icon name="arrow-left" gap />Назад
       </button>
 
       <div className="page__header">

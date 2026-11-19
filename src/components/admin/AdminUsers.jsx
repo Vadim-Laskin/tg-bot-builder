@@ -1,3 +1,4 @@
+import Icon from '../Icon.jsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminListUsers, adminUpdateProfile } from '../../lib/admin.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
@@ -37,7 +38,12 @@ export default function AdminUsers() {
       <div className="admin-toolbar">
         <input className="input" placeholder="Поиск по email или имени" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button className="btn btn--sm" onClick={load} disabled={loading}>
-          {loading ? 'Обновляю…' : '↻ Обновить'}
+          {loading ? 'Обновляю…' : (
+        <>
+          <Icon name="arrows-rotate" gap />
+          Обновить
+        </>
+      )}
         </button>
       </div>
 

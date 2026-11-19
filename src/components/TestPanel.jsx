@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useRef, useState } from 'react';
 import { runFlow } from '../engine/flowEngine.js';
 import { createMockApi } from '../engine/mockApi.js';
@@ -163,10 +164,14 @@ export default function TestPanel({ graph, allFlows, onClose }) {
   return (
     <div className="test-panel">
       <div className="test-panel__header">
-        <span>🧪 Тест сценария</span>
+        <span>
+          <Icon name="flask" gap />
+          Тест сценария
+        </span>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn btn--sm" onClick={toggleChatKind} title="Откуда как будто пришло сообщение">
-            {chatKind === 'private' ? '👤 Личка' : '👥 Группа'}
+            <Icon name={chatKind === 'private' ? 'user' : 'user-group'} gap />
+            {chatKind === 'private' ? 'Личка' : 'Группа'}
           </button>
           <button className="btn btn--sm" onClick={reset}>
             Сброс
@@ -190,7 +195,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
             >
               {it.toOtherChat && (
                 <div style={{ fontSize: 10, color: 'var(--wire-broadcast)', marginBottom: 3, fontWeight: 700 }}>
-                  → в чат {it.chatId}
+                  <Icon name="arrow-right" gap />в чат {it.chatId}
                 </div>
               )}
               {it.kind === 'bot' ? (
@@ -217,7 +222,8 @@ export default function TestPanel({ graph, allFlows, onClose }) {
                             onClick={() => pressButton(it, b)}
                             title={b.kind === 'url' ? b.url : 'Нажать (тест)'}
                           >
-                            {b.kind === 'url' ? '🔗 ' : b.kind === 'keyboard' ? '⌨️ ' : ''}
+                            {b.kind === 'url' && <Icon name="link" gap />}
+                            {b.kind === 'keyboard' && <Icon name="keyboard" gap />}
                             {b.text}
                           </button>
                         );
@@ -239,7 +245,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
           onKeyDown={(e) => e.key === 'Enter' && send(input)}
         />
         <button className="btn btn--primary btn--sm" onClick={() => send(input)}>
-          →
+          <Icon name="paper-plane" />
         </button>
       </div>
     </div>

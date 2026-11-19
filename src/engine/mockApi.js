@@ -35,7 +35,7 @@ export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog
       onLog?.(`→ ${method} ${url} (симуляция, запрос не отправлен)`);
     },
     async wait(ms) {
-      onLog?.(`⏳ пауза ${ms} мс (пропущено в превью)`);
+      onLog?.(`пауза ${ms} мс (пропущено в превью)`);
     },
     async sendChatAction() {
       onLog?.('… печатает');

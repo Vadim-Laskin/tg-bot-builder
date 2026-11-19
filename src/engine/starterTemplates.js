@@ -246,10 +246,10 @@ function leads() {
 
 // title/icon/gradient — для карточек мастера
 export const STARTER_TEMPLATES = [
-  { id: 'menu', title: 'Меню с кнопками', icon: '🔢', gradient: 'linear-gradient(135deg,#4f9bff,#6b7bff)', build: menu },
-  { id: 'subscribe', title: 'Подписка на рассылки', icon: '✉️', gradient: 'linear-gradient(135deg,#a66bff,#cfa6ff)', build: subscribe },
-  { id: 'event', title: 'Запись на мероприятие', icon: '📅', gradient: 'linear-gradient(135deg,#ff5f7a,#ff8f8f)', build: event },
-  { id: 'schedule', title: 'Рассылка по расписанию', icon: '🕒', gradient: 'linear-gradient(135deg,#ff8a3d,#ffb347)', build: schedule },
-  { id: 'quiz', title: 'Тест с баллами', icon: '🎓', gradient: 'linear-gradient(135deg,#10c28a,#34d9a4)', build: quiz },
-  { id: 'leads', title: 'Сбор заявок', icon: '🗂', gradient: 'linear-gradient(135deg,#18c5e8,#62e3f3)', build: leads }
+  { id: 'menu', title: 'Меню с кнопками', icon: 'bars', gradient: 'linear-gradient(135deg,#4f9bff,#6b7bff)', build: menu },
+  { id: 'subscribe', title: 'Подписка на рассылки', icon: 'envelope', gradient: 'linear-gradient(135deg,#a66bff,#cfa6ff)', build: subscribe },
+  { id: 'event', title: 'Запись на мероприятие', icon: 'calendar-days', gradient: 'linear-gradient(135deg,#ff5f7a,#ff8f8f)', build: event },
+  { id: 'schedule', title: 'Рассылка по расписанию', icon: 'clock', gradient: 'linear-gradient(135deg,#ff8a3d,#ffb347)', build: schedule },
+  { id: 'quiz', title: 'Тест с баллами', icon: 'graduation-cap', gradient: 'linear-gradient(135deg,#10c28a,#34d9a4)', build: quiz },
+  { id: 'leads', title: 'Сбор заявок', icon: 'folder-open', gradient: 'linear-gradient(135deg,#18c5e8,#62e3f3)', build: leads }
 ];

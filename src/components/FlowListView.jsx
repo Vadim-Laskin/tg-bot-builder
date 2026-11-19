@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import Modal from './Modal.jsx';
 import SecretsForm from './SecretsForm.jsx';
@@ -18,7 +19,7 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
       <div className="page">
         <p>Бот не найден.</p>
         <button className="btn" onClick={onBack}>
-          ← К списку ботов
+          <Icon name="arrow-left" gap />К списку ботов
         </button>
       </div>
     );
@@ -39,7 +40,7 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
   return (
     <div className="page">
       <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>
-        ← Боты
+        <Icon name="arrow-left" gap />Боты
       </button>
 
       {bot.status && bot.status !== 'active' && (
@@ -67,16 +68,16 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn" onClick={onOpenUsers}>
-            👥 Пользователи
+            <Icon name="users" gap />Пользователи
           </button>
           <button className="btn" onClick={onOpenBroadcasts}>
-            📢 Рассылки
+            <Icon name="bullhorn" gap />Рассылки
           </button>
           <button className="btn" onClick={onOpenChannels}>
-            💬 Группы и каналы
+            <Icon name="comments" gap />Группы и каналы
           </button>
           <button className="btn" onClick={() => setSecretsOpen(true)}>
-            🔑 Ключи бота
+            <Icon name="key" gap />Ключи бота
           </button>
           <button className="btn btn--primary" onClick={addScenario}>
             + Сценарий
@@ -87,11 +88,13 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
       <div className="flow-list">
         {bot.flows.map((f) => (
           <div className="flow-row" key={f.id} onClick={() => openFlow(f.id)}>
-            <span className="flow-row__icon">{f.isMain ? '🏠' : '🔗'}</span>
+            <span className="flow-row__icon"><Icon name={f.isMain ? 'house' : 'link'} /></span>
             <span className="flow-row__name">{f.name}</span>
             {f.isMain && <span className="flow-row__badge">Главный</span>}
             <span className="flow-row__meta">{f.nodes.length} блоков</span>
-            <span className="flow-row__arrow">→</span>
+            <span className="flow-row__arrow">
+              <Icon name="chevron-right" />
+            </span>
           </div>
         ))}
       </div>

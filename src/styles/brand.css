@@ -762,3 +762,27 @@ body::before {
   white-space: nowrap;
   flex: 0 0 auto;
 }
+
+/* ---------- иконки Font Awesome ---------- */
+
+.ico--gap {
+  margin-right: 0.5em;
+}
+
+.fa-solid,
+.fa-brands {
+  flex: 0 0 auto;
+}
+
+/* в кнопках и пунктах меню отступ уже задаёт gap контейнера */
+.btn .ico--gap,
+.usermenu__item .ico--gap,
+.admin-tab .ico--gap {
+  margin-right: 0;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}

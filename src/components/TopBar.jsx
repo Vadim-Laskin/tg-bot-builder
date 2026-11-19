@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../store/useTheme.js';
 import { useAuthStore } from '../store/useAuthStore.js';
@@ -72,7 +73,7 @@ export default function TopBar({ view, onNavigate }) {
           >
             <span className="usermenu__avatar">{initial}</span>
             <span className="usermenu__chevron" aria-hidden="true">
-              ▾
+              <Icon name="chevron-down" />
             </span>
           </button>
 
@@ -89,19 +90,27 @@ export default function TopBar({ view, onNavigate }) {
               </div>
 
               <button className="usermenu__item" role="menuitem" onClick={() => go('account')}>
-                <span className="usermenu__icon">👤</span>Профиль
+                <span className="usermenu__icon">
+                  <Icon name="user" />
+                </span>Профиль
               </button>
               <button className="usermenu__item" role="menuitem" onClick={() => go('settings')}>
-                <span className="usermenu__icon">⚙️</span>Настройки
+                <span className="usermenu__icon">
+                  <Icon name="gear" />
+                </span>Настройки
               </button>
               <button className="usermenu__item" role="menuitem" onClick={toggle}>
-                <span className="usermenu__icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+                <span className="usermenu__icon">
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+                </span>
                 {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
               </button>
 
               <div className="usermenu__sep" />
               <button className="usermenu__item usermenu__item--danger" role="menuitem" onClick={signOut}>
-                <span className="usermenu__icon">⎋</span>Выйти
+                <span className="usermenu__icon">
+                  <Icon name="right-from-bracket" />
+                </span>Выйти
               </button>
             </div>
           )}

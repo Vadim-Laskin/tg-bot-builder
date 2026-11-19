@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { useBotStore } from '../store/useBotStore.js';
@@ -89,14 +90,14 @@ export default function BotBroadcastsView({ onBack }) {
     return (
       <div className="page">
         <p>Бот не найден.</p>
-        <button className="btn" onClick={onBack}>← К списку ботов</button>
+        <button className="btn" onClick={onBack}><Icon name="arrow-left" gap />К списку ботов</button>
       </div>
     );
   }
 
   return (
     <div className="page">
-      <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>← {bot.name}</button>
+      <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}><Icon name="arrow-left" gap />{bot.name}</button>
       <div className="page__header">
         <div>
           <h1 className="page__title">Рассылки</h1>
@@ -145,7 +146,12 @@ export default function BotBroadcastsView({ onBack }) {
           </div>
         ) : (
           <button className="btn btn--primary" onClick={start} disabled={busy || inactive || !hasToken || !text.trim() || !count || (audience === 'tag' && !tag)}>
-            {busy ? 'Готовлю…' : '📢 Отправить рассылку'}
+            {busy ? 'Готовлю…' : (
+            <>
+              <Icon name="bullhorn" gap />
+              Отправить рассылку
+            </>
+          )}
           </button>
         )}
       </div>

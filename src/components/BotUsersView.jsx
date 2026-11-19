@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { useBotStore } from '../store/useBotStore.js';
@@ -42,7 +43,7 @@ export default function BotUsersView({ onBack }) {
       <div className="page">
         <p>Бот не найден.</p>
         <button className="btn" onClick={onBack}>
-          ← К списку ботов
+          <Icon name="arrow-left" gap />К списку ботов
         </button>
       </div>
     );
@@ -52,7 +53,7 @@ export default function BotUsersView({ onBack }) {
     return (
       <div className="page">
         <button className="btn btn--sm" onClick={() => setSelected(null)} style={{ marginBottom: 14 }}>
-          ← Все пользователи
+          <Icon name="arrow-left" gap />Все пользователи
         </button>
 
         <div className="page__header">
@@ -136,7 +137,7 @@ export default function BotUsersView({ onBack }) {
   return (
     <div className="page">
       <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>
-        ← {bot.name}
+        <Icon name="arrow-left" gap />{bot.name}
       </button>
 
       <div className="page__header">
@@ -154,11 +155,13 @@ export default function BotUsersView({ onBack }) {
         <div className="flow-list">
           {users.map((u) => (
             <div className="flow-row" key={u.chat_id} onClick={() => openUser(u)}>
-              <span className="flow-row__icon">👤</span>
+              <span className="flow-row__icon"><Icon name="user" /></span>
               <span className="flow-row__name">{userLabel(u)}</span>
               {u.tags?.length > 0 && <span className="flow-row__badge">{u.tags.length} тег(ов)</span>}
               <span className="flow-row__meta">{formatDate(u.updated_at)}</span>
-              <span className="flow-row__arrow">→</span>
+              <span className="flow-row__arrow">
+            <Icon name="chevron-right" />
+          </span>
             </div>
           ))}
         </div>

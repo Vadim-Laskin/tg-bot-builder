@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useEffect, useState } from 'react';
 import { connectWebhook as registerWebhook } from '../lib/webhook.js';
 import { vkCallbackUrl, vkCheckBot, vkConnectBot, vkVerifyToken } from '../lib/vk.js';
@@ -20,7 +21,7 @@ function CopyRow({ label, value }) {
       <div className="vk-copy__row">
         <code>{value}</code>
         <button className="btn btn--sm" onClick={copy}>
-          {copied ? '✓' : 'Копировать'}
+          {copied ? <Icon name="check" /> : 'Копировать'}
         </button>
       </div>
     </div>
@@ -133,10 +134,27 @@ export default function SecretsForm({ bot, onSave, onClose }) {
 
       <div className="modal__actions" style={{ justifyContent: 'space-between' }}>
         <button className="btn btn--sm" onClick={save}>
-          {saved ? '✓ Сохранено' : 'Сохранить'}
+          {saved ? (
+            <>
+              <Icon name="check" gap />
+              Сохранено
+            </>
+          ) : (
+            'Сохранить'
+          )}
         </button>
         <button className="btn btn--primary btn--sm" onClick={connectWebhook} disabled={connecting || !token}>
-          {connecting ? 'Подключаю…' : vk ? '🔌 Подключить сообщество' : '🔌 Подключить вебхук'}
+          {connecting ? 'Подключаю…' : vk ? (
+            <>
+              <Icon name="plug" gap />
+              Подключить сообщество
+            </>
+          ) : (
+            <>
+              <Icon name="plug" gap />
+              Подключить вебхук
+            </>
+          )}
         </button>
       </div>
 
@@ -155,13 +173,18 @@ export default function SecretsForm({ bot, onSave, onClose }) {
       {vk && (
         <div style={{ marginTop: 14 }}>
           <button className="btn btn--sm" onClick={runCheck} disabled={checking || !bot.vkToken}>
-            {checking ? 'Проверяю…' : '🩺 Проверить подключение'}
+            {checking ? 'Проверяю…' : (
+              <>
+                <Icon name="stethoscope" gap />
+                Проверить подключение
+              </>
+            )}
           </button>
           {checks && (
             <ul className="vk-checks">
               {checks.map((c, i) => (
                 <li key={i} className={c.ok ? 'is-ok' : c.soft ? 'is-warn' : 'is-bad'}>
-                  <span>{c.ok ? '✓' : c.soft ? '!' : '✗'}</span>
+                  <span><Icon name={c.ok ? 'check' : c.soft ? 'triangle-exclamation' : 'xmark'} /></span>
                   <div>
                     {c.title}
                     {c.hint && <small>{c.hint}</small>}
@@ -212,7 +235,7 @@ export default function SecretsForm({ bot, onSave, onClose }) {
                 spellCheck={false}
               />
               <button className="btn btn--sm" onClick={saveConfirmation} disabled={!confirmation.trim()}>
-                {confirmSaved ? '✓' : 'Сохранить строку'}
+                {confirmSaved ? <Icon name="check" /> : 'Сохранить строку'}
               </button>
             </div>
           </div>

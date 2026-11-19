@@ -1,3 +1,4 @@
+import Icon from '../Icon.jsx';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import AdminUsers from './AdminUsers.jsx';
@@ -6,10 +7,10 @@ import AdminDiagnostics from './AdminDiagnostics.jsx';
 import AdminTemplates from './AdminTemplates.jsx';
 
 const TABS = [
-  { id: 'users', label: '👥 Пользователи' },
-  { id: 'bots', label: '🤖 Боты' },
-  { id: 'templates', label: '📋 Шаблоны' },
-  { id: 'diagnostics', label: '🩺 Диагностика' }
+  { id: 'users', icon: 'users', label: 'Пользователи' },
+  { id: 'bots', icon: 'robot', label: 'Боты' },
+  { id: 'templates', icon: 'clipboard-list', label: 'Шаблоны' },
+  { id: 'diagnostics', icon: 'stethoscope', label: 'Диагностика' }
 ];
 
 export default function AdminView({ onBack }) {
@@ -22,7 +23,7 @@ export default function AdminView({ onBack }) {
       <div className="page">
         <p style={{ color: 'var(--text-dim)' }}>Раздел только для администраторов.</p>
         <button className="btn btn--sm" onClick={onBack}>
-          ← Назад
+          <Icon name="arrow-left" gap />Назад
         </button>
       </div>
     );
@@ -40,6 +41,7 @@ export default function AdminView({ onBack }) {
       <div className="admin-tabs">
         {TABS.map((t) => (
           <button key={t.id} className={`admin-tab${tab === t.id ? ' is-active' : ''}`} onClick={() => setTab(t.id)}>
+            <Icon name={t.icon} gap />
             {t.label}
           </button>
         ))}

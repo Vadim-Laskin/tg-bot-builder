@@ -16,7 +16,7 @@ async function loadAnimationData(src) {
   return JSON.parse(await new Response(stream).text());
 }
 
-export default function TgsSticker({ src = `${import.meta.env.BASE_URL}stickers/welcome.tgs`, size = 180, fallback = '🦄' }) {
+export default function TgsSticker({ src = `${import.meta.env.BASE_URL}stickers/welcome.tgs`, size = 180, fallback = <i className="fa-solid fa-paper-plane" aria-hidden="true" /> }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
 

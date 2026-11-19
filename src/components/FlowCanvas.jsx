@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
@@ -282,7 +283,8 @@ function InnerCanvas({ bot, flow }) {
           <TestPanel graph={{ nodes, edges }} allFlows={liveFlows} onClose={() => setShowTest(false)} />
         ) : (
           <button className="btn btn--primary test-fab" onClick={() => setShowTest(true)}>
-            🧪 Тест
+            <Icon name="flask" gap />
+            Тест
           </button>
         )}
       </div>

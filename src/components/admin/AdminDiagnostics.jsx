@@ -1,9 +1,10 @@
+import Icon from '../Icon.jsx';
 import { useState } from 'react';
 import { adminDiagnostics } from '../../lib/admin.js';
 
 const Row = ({ ok, label, value, soft }) => (
   <li className={ok ? 'is-ok' : soft ? 'is-warn' : 'is-bad'}>
-    <span>{ok ? '✓' : soft ? '!' : '✗'}</span>
+    <span><Icon name={ok ? 'check' : soft ? 'triangle-exclamation' : 'xmark'} /></span>
     <div>
       {label}
       {value != null && <small>{value}</small>}
@@ -25,7 +26,12 @@ export default function AdminDiagnostics() {
     <div>
       <div className="admin-toolbar">
         <button className="btn btn--primary btn--sm" onClick={run} disabled={state.loading}>
-          {state.loading ? 'Проверяю…' : '▶ Запустить диагностику'}
+          {state.loading ? 'Проверяю…' : (
+            <>
+              <Icon name="play" gap />
+              Запустить диагностику
+            </>
+          )}
         </button>
         {d && <span className="admin-hint">Сайт: {d.site ?? '—'} · {new Date(d.time).toLocaleTimeString('ru-RU')}</span>}
       </div>

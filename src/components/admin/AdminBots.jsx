@@ -1,3 +1,4 @@
+import Icon from '../Icon.jsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminListBots, adminSetBotStatus } from '../../lib/admin.js';
 
@@ -71,7 +72,12 @@ export default function AdminBots() {
           <option value="disabled">Отключены</option>
         </select>
         <button className="btn btn--sm" onClick={load} disabled={loading}>
-          {loading ? 'Обновляю…' : '↻ Обновить'}
+          {loading ? 'Обновляю…' : (
+          <>
+            <Icon name="arrows-rotate" gap />
+            Обновить
+          </>
+        )}
         </button>
       </div>
 
@@ -105,7 +111,7 @@ export default function AdminBots() {
                     <span className={`badge ${st.cls}`}>{st.label}</span>
                     {b.status_reason && <div className="admin-cell-sub">{b.status_reason}</div>}
                   </td>
-                  <td>{b.has_token ? '✓' : <span className="badge badge--warn">нет</span>}</td>
+                  <td>{b.has_token ? <Icon name="check" /> : <span className="badge badge--warn">нет</span>}</td>
                   <td>{fmtDate(b.created_at)}</td>
                   <td>
                     <div className="admin-actions">

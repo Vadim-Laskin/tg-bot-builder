@@ -225,23 +225,23 @@ async function status(supabase, botId) {
     const items = servers.response?.items ?? [];
     const ours = items.find((s) => s.url === url) ?? items.find((s) => s.title === SERVER_TITLE);
     if (!ours) {
-      add(false, 'Сообщество подключено к сайту', 'Сервер Callback API не добавлен. Нажмите «🔌 Подключить сообщество».');
+      add(false, 'Сообщество подключено к сайту', 'Сервер Callback API не добавлен. Нажмите «Подключить сообщество».');
     } else {
       add(
         ours.status === 'ok',
         `Сервер Callback API: ${SERVER_STATUS_RU[ours.status] ?? ours.status}`,
-        'ВКонтакте не подтвердил адрес сайта. Нажмите «🔌 Подключить сообщество» ещё раз.'
+        'ВКонтакте не подтвердил адрес сайта. Нажмите «Подключить сообщество» ещё раз.'
       );
       if (ours.url !== url) {
-        add(false, 'Адрес сервера совпадает с адресом сайта', `В сообществе указан другой адрес (${ours.url}). Нажмите «🔌 Подключить сообщество».`);
+        add(false, 'Адрес сервера совпадает с адресом сайта', `В сообществе указан другой адрес (${ours.url}). Нажмите «Подключить сообщество».`);
       }
       const st = await vkCall('groups.getCallbackSettings', { group_id, server_id: ours.id }, token);
       const ev = st.response?.events ?? {};
       if (st.error) {
         add(false, 'Настройки событий', friendlyError(st.error));
       } else {
-        add(!!+ev.message_new, 'Событие «Входящее сообщение» включено', 'Нажмите «🔌 Подключить сообщество» — оно включится само.');
-        add(!!+ev.message_event, 'Событие «Нажатие на кнопку» включено', 'Без него inline-кнопки не будут работать. Нажмите «🔌 Подключить сообщество».');
+        add(!!+ev.message_new, 'Событие «Входящее сообщение» включено', 'Нажмите «Подключить сообщество» — оно включится само.');
+        add(!!+ev.message_event, 'Событие «Нажатие на кнопку» включено', 'Без него inline-кнопки не будут работать. Нажмите «Подключить сообщество».');
       }
     }
   }

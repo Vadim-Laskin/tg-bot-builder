@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useEffect, useState } from 'react';
 import { useBotStore } from '../store/useBotStore.js';
 import { STARTER_TEMPLATES } from '../engine/starterTemplates.js';
@@ -9,15 +10,15 @@ import { randomVkSecret } from '../lib/platform.js';
 import TgsSticker from './TgsSticker.jsx';
 
 const PLATFORMS = [
-  { id: 'telegram', title: 'Telegram', hint: 'Понадобится токен от @BotFather', icon: '✈️', gradient: 'linear-gradient(135deg,#2aabee,#1c8fd0)' },
-  { id: 'vk', title: 'ВКонтакте', hint: 'Выберите своё сообщество', icon: '💬', gradient: 'linear-gradient(135deg,#0077ff,#4a9bff)' }
+  { id: 'telegram', title: 'Telegram', hint: 'Понадобится токен от @BotFather', icon: 'telegram', gradient: 'linear-gradient(135deg,#2aabee,#1c8fd0)' },
+  { id: 'vk', title: 'ВКонтакте', hint: 'Выберите своё сообщество', icon: 'vk', gradient: 'linear-gradient(135deg,#0077ff,#4a9bff)' }
 ];
 
 // Список «моих сообществ» работает только если VK выдал приложению доступ groups
 // (см. README) — тогда в .env ставят VITE_VK_GROUPS_ACCESS=1
 const GROUPS_LIST = VK_APP_ID && import.meta.env.VITE_VK_GROUPS_ACCESS === '1';
 
-const WEBHOOK_LATER = 'Вебхук пока не подключён (это нормально при локальном запуске). Его можно подключить позже: бот → «🔑 Ключи бота».';
+const WEBHOOK_LATER = 'Вебхук пока не подключён (это нормально при локальном запуске). Его можно подключить позже: бот → «Ключи бота».';
 
 // «+ Новый бот»: платформа → (Telegram: токен | ВКонтакте: сообщество) → шаблон.
 export default function NewBotWizard({ onClose, onDone, preset }) {
@@ -94,7 +95,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
     }
 
     // Вебхук подключаем сразу; если не вышло (например, локальный npm run dev),
-    // не страшно — это можно сделать позже в «🔑 Ключи бота».
+    // не страшно — это можно сделать позже в «Ключи бота».
     const wh = await connectWebhook(id);
     setCreated({ id, name, handle: info.bot.username && `@${info.bot.username}`, notes: wh.ok ? [] : [WEBHOOK_LATER], alerts: [] });
     setBusy(null);
@@ -207,7 +208,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
     if (expiresIn > 0) {
       const hours = Math.max(1, Math.round(expiresIn / 3600));
       notes.push(
-        `Ключ, полученный через вход, действует около ${hours} ч. Для постоянной работы создайте бессрочный ключ: сообщество → Управление → Работа с API → Ключи доступа — и вставьте его в «🔑 Ключи бота».`
+        `Ключ, полученный через вход, действует около ${hours} ч. Для постоянной работы создайте бессрочный ключ: сообщество → Управление → Работа с API → Ключи доступа — и вставьте его в «Ключи бота».`
       );
     }
 
@@ -234,7 +235,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
     <div className="wizard" role="dialog" aria-modal="true">
       <div className="wizard__card">
         <button className="wizard__close" onClick={onClose} disabled={locked} aria-label="Закрыть">
-          ✕
+          <Icon name="xmark" />
         </button>
 
         <div className="wizard__side">
@@ -244,7 +245,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
         <div className="wizard__main">
           {showBack && (
             <button className="wizard__back" onClick={goBack} disabled={locked}>
-              ← Назад
+              <Icon name="arrow-left" gap />Назад
             </button>
           )}
 
@@ -270,7 +271,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
                       <small>{p.hint}</small>
                     </span>
                     <span className="tpl-card__icon" aria-hidden="true">
-                      {p.icon}
+                      <Icon name={p.icon} brand />
                     </span>
                   </button>
                 ))}
@@ -464,7 +465,8 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
           {step === 'template' && (
             <>
               <div className="wizard__chip">
-                ✅ {created.name}
+                <Icon name="circle-check" gap />
+                {created.name}
                 {created.handle && <span> · {created.handle}</span>}
               </div>
               {created.alerts.length > 0 && (
@@ -474,8 +476,8 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
                     <p key={i}>{a}</p>
                   ))}
                   <p>
-                    Выберите шаблон и откройте бота → «🔑 Ключи бота»: вставьте ключ с нужными правами, нажмите «🔌 Подключить
-                    сообщество» и «🩺 Проверить подключение».
+                    Выберите шаблон и откройте бота → «Ключи бота»: вставьте ключ с нужными правами, нажмите «Подключить
+                    сообщество» и «Проверить подключение».
                   </p>
                 </div>
               )}
@@ -495,7 +497,7 @@ export default function NewBotWizard({ onClose, onDone, preset }) {
                   >
                     <span className="tpl-card__title">{tpl.title}</span>
                     <span className="tpl-card__icon" aria-hidden="true">
-                      {tpl.icon}
+                      <Icon name={tpl.icon} />
                     </span>
                   </button>
                 ))}

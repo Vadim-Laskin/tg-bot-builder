@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
 import Modal from './Modal.jsx';
@@ -11,14 +12,14 @@ const SWATCHES = [
 ];
 
 const ICONS = {
-  message: '💬',
-  aiMessage: '🤖',
-  sendToChat: '📨',
-  action: '⚡',
-  condition: '🔀',
-  chain: '🔗',
-  setVariable: '🔢',
-  setTag: '🏷'
+  message: 'comment',
+  aiMessage: 'robot',
+  sendToChat: 'paper-plane',
+  action: 'bolt',
+  condition: 'code-branch',
+  chain: 'link',
+  setVariable: 'hashtag',
+  setTag: 'tag'
 };
 
 // в «Блок для перехода» можно целиться только в блоки со входом (не заметки и не события)
@@ -54,7 +55,7 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
         </button>
       </div>
       <button className="button-editor__back" onClick={onClose}>
-        ← К блоку
+        <Icon name="arrow-left" gap />К блоку
       </button>
 
       {!isKbd && (
@@ -81,7 +82,7 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
               title={s.label}
               aria-label={s.label}
             >
-              {(button.style || '') === s.value ? '✓' : ''}
+              {(button.style || '') === s.value ? <Icon name="check" /> : null}
             </button>
           ))}
         </div>
@@ -112,14 +113,14 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
           {target ? (
             <div className="bb-target">
               <button className="bb-target__main" onClick={() => setPicking(true)}>
-                <span className="bb-target__icon">{ICONS[target.type] ?? '▫️'}</span>
+                <span className="bb-target__icon"><Icon name={ICONS[target.type] ?? 'square'} /></span>
                 <span className="bb-target__text">
                   <span className="bb-target__title">{blockTitle(target)}</span>
                   <span className="bb-target__sub">Блок «{BLOCK_DEFS[target.type].label}»</span>
                 </span>
               </button>
               <button className="bb-target__clear" onClick={() => onTarget(null)} aria-label="Убрать переход">
-                ✕
+                <Icon name="xmark" />
               </button>
             </div>
           ) : (
@@ -137,7 +138,8 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
       )}
 
       <button className="bb-delete" onClick={onDelete}>
-        🗑 Удалить
+        <Icon name="trash" gap />
+        Удалить
       </button>
 
       {picking && (
@@ -150,7 +152,7 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
                 setPicking(false);
               }}
             >
-              <span className="bb-target__icon">✨</span>
+              <span className="bb-target__icon"><Icon name="wand-magic-sparkles" /></span>
               <span className="bb-target__text">
                 <span className="bb-target__title">Создать новое сообщение</span>
                 <span className="bb-target__sub">Блок появится рядом и сразу подключится</span>
@@ -165,7 +167,7 @@ export default function ButtonEditor({ button, layout, blocks, targetId, onPatch
                   setPicking(false);
                 }}
               >
-                <span className="bb-target__icon">{ICONS[n.type] ?? '▫️'}</span>
+                <span className="bb-target__icon"><Icon name={ICONS[n.type] ?? 'square'} /></span>
                 <span className="bb-target__text">
                   <span className="bb-target__title">{blockTitle(n)}</span>
                   <span className="bb-target__sub">Блок «{BLOCK_DEFS[n.type].label}»</span>

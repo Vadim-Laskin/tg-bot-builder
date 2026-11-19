@@ -1,3 +1,4 @@
+import Icon from '../Icon.jsx';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from 'reactflow';
@@ -161,7 +162,9 @@ export default function NodeButtons({ nodeId, buttons, layout, variant = 'node' 
                     onContextMenu={(e) => e.preventDefault()}
                   >
                     <span className="tg-btn__text">{b.text || 'Кнопка'}</span>
-                    {!isKbd && b.kind === 'url' && <span className="tg-btn__link">↗</span>}
+                    {!isKbd && b.kind === 'url' && <span className="tg-btn__link">
+                        <Icon name="arrow-up-right-from-square" />
+                      </span>}
                   </div>
                   {wireable && (
                     <Handle

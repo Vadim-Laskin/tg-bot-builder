@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import Modal from './Modal.jsx';
 import { useBotStore } from '../store/useBotStore.js';
@@ -32,7 +33,7 @@ export default function TagsModal({ bot, onClose }) {
             <span className="registry-row__name">{t.name}</span>
             <span className="registry-row__badge">{t.scope === 'global' ? 'общий' : 'личный'}</span>
             <button className="btn btn--sm btn--danger" onClick={() => deleteTag(bot.id, t.id)}>
-              ✕
+              <Icon name="xmark" />
             </button>
           </div>
         ))}

@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import FlowCanvas from './FlowCanvas.jsx';
 import VariablesModal from './VariablesModal.jsx';
@@ -15,7 +16,7 @@ export default function BotEditorView({ onBack }) {
       <div className="page">
         <p>Сценарий не найден.</p>
         <button className="btn" onClick={onBack}>
-          ← Назад
+          <Icon name="arrow-left" gap />Назад
         </button>
       </div>
     );
@@ -25,7 +26,7 @@ export default function BotEditorView({ onBack }) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="editor-topbar">
         <button className="btn btn--sm" onClick={onBack}>
-          ←
+          <Icon name="arrow-left" />
         </button>
         <span className="editor-topbar__crumb">{bot.name} /</span>
         <span
@@ -40,10 +41,12 @@ export default function BotEditorView({ onBack }) {
         <div className="editor-topbar__spacer" />
 
         <button className="btn btn--sm" onClick={() => setModal('variables')}>
-          🔢 Переменные
+          <Icon name="hashtag" gap />
+          Переменные
         </button>
         <button className="btn btn--sm" onClick={() => setModal('tags')}>
-          🏷 Теги
+          <Icon name="tag" gap />
+          Теги
         </button>
       </div>
 

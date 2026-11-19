@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import Modal from './Modal.jsx';
 import { useBotStore } from '../store/useBotStore.js';
@@ -31,7 +32,7 @@ export default function VariablesModal({ bot, onClose }) {
             <span className="registry-row__name">{v.name}</span>
             <span className="registry-row__badge">{v.scope === 'global' ? 'общая' : 'личная'}</span>
             <button className="btn btn--sm btn--danger" onClick={() => deleteVariable(bot.id, v.id)}>
-              ✕
+              <Icon name="xmark" />
             </button>
           </div>
         ))}

@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { useBotStore } from '../store/useBotStore.js';
@@ -42,7 +43,7 @@ export default function BotChannelsView({ onBack }) {
       <div className="page">
         <p>Бот не найден.</p>
         <button className="btn" onClick={onBack}>
-          ← К списку ботов
+          <Icon name="arrow-left" gap />К списку ботов
         </button>
       </div>
     );
@@ -51,7 +52,7 @@ export default function BotChannelsView({ onBack }) {
   return (
     <div className="page">
       <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>
-        ← {bot.name}
+        <Icon name="arrow-left" gap />{bot.name}
       </button>
 
       <div className="page__header">
@@ -73,7 +74,7 @@ export default function BotChannelsView({ onBack }) {
         <div className="flow-list">
           {chats.map((c) => (
             <div className="flow-row" key={c.chat_id} style={{ cursor: 'default' }}>
-              <span className="flow-row__icon">{c.type === 'channel' ? '📢' : '👥'}</span>
+              <span className="flow-row__icon"><Icon name={c.type === 'channel' ? 'bullhorn' : 'users'} /></span>
               <span className="flow-row__name">{c.title || `Чат ${c.chat_id}`}</span>
               <span className="flow-row__meta">{typeLabel(c.type)}</span>
               <label className="switch" title={c.is_enabled ? 'Бот отвечает здесь' : 'Бот отключён здесь'}>

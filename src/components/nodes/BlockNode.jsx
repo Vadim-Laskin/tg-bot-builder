@@ -39,8 +39,8 @@ function summarize(type, data) {
       return `${data.variableName || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
       return chainMode(data) === 'new'
-        ? `▶ Начало: ${data.chainName || 'без названия'}`
-        : `→ Переход к: ${data.chainName || data.flowName || 'цепочка не выбрана'}`;
+        ? `Начало: ${data.chainName || 'без названия'}`
+        : `Переход к: ${data.chainName || data.flowName || 'цепочка не выбрана'}`;
     case 'setVariable':
       return `${data.variableName || '—'} (${data.scope === 'global' ? 'общая' : 'личная'}) ${data.op} ${
         data.op === 'clear' ? '' : data.value ?? ''

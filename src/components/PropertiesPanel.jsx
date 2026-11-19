@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
@@ -98,7 +99,8 @@ export default function PropertiesPanel({
               checked={!!data.editPrevious}
               onChange={(e) => set({ editPrevious: e.target.checked })}
             />
-            ✏️ Редактировать предыдущее сообщение (если сюда попали по кнопке)
+            <Icon name="pen" gap />
+            Редактировать предыдущее сообщение (если сюда попали по кнопке)
           </label>
           {data.editPrevious && (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px', lineHeight: 1.4 }}>
@@ -113,7 +115,8 @@ export default function PropertiesPanel({
               checked={!!data.waitForReply}
               onChange={(e) => set({ waitForReply: e.target.checked })}
             />
-            ⏳ Ждать ответ пользователя
+            <Icon name="hourglass-half" gap />
+            Ждать ответ пользователя
           </label>
           {data.waitForReply && (
             <>
@@ -144,7 +147,7 @@ export default function PropertiesPanel({
               </Field>
               {(variableDefs ?? []).length === 0 && (
                 <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-                  Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+                  Переменных пока нет — создайте через «Переменные» в шапке редактора.
                 </p>
               )}
             </>
@@ -219,7 +222,8 @@ export default function PropertiesPanel({
               checked={!!data.editPrevious}
               onChange={(e) => set({ editPrevious: e.target.checked })}
             />
-            ✏️ Редактировать предыдущее сообщение (если сюда попали по кнопке)
+            <Icon name="pen" gap />
+            Редактировать предыдущее сообщение (если сюда попали по кнопке)
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: 10 }}>
             <input
@@ -227,7 +231,8 @@ export default function PropertiesPanel({
               checked={!!data.allowButtons}
               onChange={(e) => set({ allowButtons: e.target.checked })}
             />
-            🔘 Разрешить ИИ самому предлагать кнопки с вариантами ответа
+            <Icon name="list-check" gap />
+            Разрешить ИИ самому предлагать кнопки с вариантами ответа
           </label>
           {data.allowButtons && (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '8px 0 0', lineHeight: 1.4 }}>
@@ -279,7 +284,7 @@ export default function PropertiesPanel({
               </Field>
               {(knownChats ?? []).length === 0 && (
                 <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-                  Список пуст, пока бота никуда не добавили — появится сам собой (см. «💬 Группы и каналы»).
+                  Список пуст, пока бота никуда не добавили — появится сам собой (см. «Группы и каналы»).
                 </p>
               )}
             </>
@@ -307,7 +312,7 @@ export default function PropertiesPanel({
               </Field>
               {(knownUsers ?? []).length === 0 && (
                 <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-                  Список пуст, пока никто не написал боту в личку — появится сам собой (см. «👥 Пользователи»).
+                  Список пуст, пока никто не написал боту в личку — появится сам собой (см. «Пользователи»).
                 </p>
               )}
             </>
@@ -535,7 +540,7 @@ export default function PropertiesPanel({
               </Field>
               {(tagDefs ?? []).length === 0 && (
                 <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-                  Тегов пока нет — создайте через «🏷 Теги» в шапке редактора.
+                  Тегов пока нет — создайте через «Теги» в шапке редактора.
                 </p>
               )}
             </>
@@ -567,7 +572,7 @@ export default function PropertiesPanel({
               </Field>
               {(variableDefs ?? []).length === 0 && (
                 <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-                  Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+                  Переменных пока нет — создайте через «Переменные» в шапке редактора.
                 </p>
               )}
               <Field label="Значение">
@@ -601,7 +606,7 @@ export default function PropertiesPanel({
           </Field>
           {(variableDefs ?? []).length === 0 && (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-              Переменных пока нет — создайте через «🔢 Переменные» в шапке редактора.
+              Переменных пока нет — создайте через «Переменные» в шапке редактора.
             </p>
           )}
           <Field label="Операция">
@@ -653,7 +658,7 @@ export default function PropertiesPanel({
           </Field>
           {(tagDefs ?? []).length === 0 && (
             <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' }}>
-              Тегов пока нет — создайте через «🏷 Теги» в шапке редактора.
+              Тегов пока нет — создайте через «Теги» в шапке редактора.
             </p>
           )}
           <Field label="Операция">
@@ -775,8 +780,7 @@ function ChainFields({ nodeId, data, set, chains }) {
 function messageNodeLabel(n) {
   const raw = n.type === 'aiMessage' ? n.data.userPrompt : n.data.text;
   const preview = (raw || '').trim().slice(0, 28) || '(пусто)';
-  const icon = n.type === 'aiMessage' ? '🤖' : '💬';
-  return `${icon} ${preview}`;
+  return n.type === 'aiMessage' ? `ИИ · ${preview}` : preview;
 }
 
 // Те же кнопки, что и на холсте: тап — настройки, зажать и потянуть — переставить.

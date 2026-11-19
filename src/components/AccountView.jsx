@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx';
 import { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { supabase } from '../lib/supabaseClient.js';
@@ -36,7 +37,7 @@ export default function AccountView({ onBack }) {
   return (
     <div className="page">
       <button className="btn btn--sm" onClick={onBack} style={{ marginBottom: 14 }}>
-        ← Назад
+        <Icon name="arrow-left" gap />Назад
       </button>
 
       <div className="page__header">
