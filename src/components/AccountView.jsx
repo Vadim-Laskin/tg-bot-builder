@@ -41,8 +41,8 @@ export default function AccountView({ onBack }) {
 
       <div className="page__header">
         <div>
-          <h1 className="page__title">Настройки аккаунта</h1>
-          <p className="page__subtitle">{profile?.email}</p>
+          <h1 className="page__title">Профиль</h1>
+          <p className="page__subtitle">Личные данные и безопасность аккаунта</p>
         </div>
       </div>
 
@@ -51,6 +51,24 @@ export default function AccountView({ onBack }) {
           <span className="field__label">Email</span>
           <input className="input" value={profile?.email ?? ''} disabled />
         </div>
+        <div className="field">
+          <span className="field__label">Роль</span>
+          <input className="input" value={profile?.is_admin ? 'Администратор' : 'Пользователь'} disabled />
+        </div>
+        {profile?.created_at && (
+          <div className="field">
+            <span className="field__label">В сервисе с</span>
+            <input
+              className="input"
+              value={new Date(profile.created_at).toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              })}
+              disabled
+            />
+          </div>
+        )}
 
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 14, margin: '20px 0 12px' }}>Сменить пароль</h3>
         <div className="field">

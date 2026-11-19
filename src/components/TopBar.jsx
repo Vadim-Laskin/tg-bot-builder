@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../store/useTheme.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 
@@ -5,6 +6,31 @@ export default function TopBar({ view, onNavigate }) {
   const { theme, toggle } = useTheme();
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
+
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // закрываем меню по клику снаружи и по Esc
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (!menuRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const go = (target) => {
+    setOpen(false);
+    onNavigate(target);
+  };
+
+  const initial = (profile?.email ?? '?').trim().charAt(0).toUpperCase();
 
   return (
     <div className="topbar">
@@ -36,25 +62,51 @@ export default function TopBar({ view, onNavigate }) {
       </div>
 
       {profile && (
-        <div className="topbar__account">
+        <div className="usermenu" ref={menuRef}>
           <button
-            className="topbar__email"
+            className={`usermenu__trigger${['account', 'settings'].includes(view) ? ' is-active' : ''}`}
+            onClick={() => setOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={open}
             title={profile.email}
-            onClick={() => onNavigate('account')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
           >
-            {profile.email}
-            {profile.is_admin && <span className="topbar__admin-badge">admin</span>}
+            <span className="usermenu__avatar">{initial}</span>
+            <span className="usermenu__chevron" aria-hidden="true">
+              ▾
+            </span>
           </button>
-          <button className="btn btn--sm" onClick={signOut}>
-            Выйти
-          </button>
+
+          {open && (
+            <div className="usermenu__panel" role="menu">
+              <div className="usermenu__head">
+                <span className="usermenu__avatar usermenu__avatar--lg">{initial}</span>
+                <div className="usermenu__who">
+                  <span className="usermenu__email" title={profile.email}>
+                    {profile.email}
+                  </span>
+                  <span className="usermenu__role">{profile.is_admin ? 'Администратор' : 'Пользователь'}</span>
+                </div>
+              </div>
+
+              <button className="usermenu__item" role="menuitem" onClick={() => go('account')}>
+                <span className="usermenu__icon">👤</span>Профиль
+              </button>
+              <button className="usermenu__item" role="menuitem" onClick={() => go('settings')}>
+                <span className="usermenu__icon">⚙️</span>Настройки
+              </button>
+              <button className="usermenu__item" role="menuitem" onClick={toggle}>
+                <span className="usermenu__icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+                {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+              </button>
+
+              <div className="usermenu__sep" />
+              <button className="usermenu__item usermenu__item--danger" role="menuitem" onClick={signOut}>
+                <span className="usermenu__icon">⎋</span>Выйти
+              </button>
+            </div>
+          )}
         </div>
       )}
-
-      <button className="theme-toggle" onClick={toggle} title="Переключить тему">
-        {theme === 'dark' ? '☀️' : '🌙'}
-      </button>
     </div>
   );
 }

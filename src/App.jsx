@@ -6,13 +6,14 @@ import FlowListView from './components/FlowListView.jsx';
 import BotEditorView from './components/BotEditorView.jsx';
 import TemplatesGallery from './components/TemplatesGallery.jsx';
 import AccountView from './components/AccountView.jsx';
+import SettingsView from './components/SettingsView.jsx';
 import BotUsersView from './components/BotUsersView.jsx';
 import BotChannelsView from './components/BotChannelsView.jsx';
 import BotBroadcastsView from './components/BotBroadcastsView.jsx';
 import AdminView from './components/admin/AdminView.jsx';
 
 export default function App() {
-  const [view, setView] = useState('bots'); // 'bots' | 'flows' | 'editor' | 'templates' | 'account' | 'users' | 'channels' | 'admin' | 'broadcasts'
+  const [view, setView] = useState('bots'); // 'bots' | 'flows' | 'editor' | 'templates' | 'account' | 'settings' | 'users' | 'channels' | 'admin' | 'broadcasts'
 
   return (
     <AuthGate>
@@ -34,6 +35,7 @@ export default function App() {
         {view === 'broadcasts' && <BotBroadcastsView onBack={() => setView('flows')} />}
         {view === 'admin' && <AdminView onBack={() => setView('bots')} />}
         {view === 'account' && <AccountView onBack={() => setView('bots')} />}
+        {view === 'settings' && <SettingsView onBack={() => setView('bots')} />}
         {view === 'users' && <BotUsersView onBack={() => setView('flows')} />}
         {view === 'channels' && <BotChannelsView onBack={() => setView('flows')} />}
       </div>
