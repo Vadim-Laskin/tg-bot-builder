@@ -17,23 +17,48 @@ import { splitIntoChipSegments } from '../engine/textChips.js';
 
 export default function ChipTextarea({ value, onChange, variableDefs, placeholder, minHeight = 76 }) {
   const elRef = useRef(null);
-  const lastValueRef = useRef(); // last value we ourselves rendered, to avoid clobbering the cursor
+  const lastValueRef = useRef(); // last value that is shown in the field
+  // Значения, которые поле само отправило наверх, но родитель ещё не вернул обратно.
+  // Родитель отвечает не мгновенно (автосохранение, батчинг React, эхо из хранилища), и пока
+  // человек печатает, пропс может отставать от поля на несколько символов. Перерисовать поле
+  // таким отставшим значением нельзя: курсор прыгает, символы теряются, а при вводе с
+  // клавиатуры телефона (IME-композиция) текст ещё и дублируется.
+  const pendingRef = useRef([]);
 
   useEffect(() => {
-    if (value === lastValueRef.current) return; // our own edit already matches — don't touch the DOM/cursor
-    renderInto(elRef.current, value);
-    lastValueRef.current = value;
+    const el = elRef.current;
+    const incoming = value ?? '';
+    if (incoming === lastValueRef.current) {
+      pendingRef.current = []; // родитель догнал поле — всё синхронно
+      return;
+    }
+    const i = pendingRef.current.indexOf(incoming);
+    if (i !== -1) {
+      pendingRef.current = pendingRef.current.slice(i + 1); // отставшее эхо нашего же ввода — игнорируем
+      return;
+    }
+    if (el && serialize(el) === incoming) {
+      lastValueRef.current = incoming; // в поле уже ровно этот текст — трогать DOM незачем
+      pendingRef.current = [];
+      return;
+    }
+    // значение действительно изменили снаружи (другой блок, вставка переменной, откат) — показываем его
+    renderInto(el, incoming);
+    lastValueRef.current = incoming;
+    pendingRef.current = [];
   }, [value]);
 
   useEffect(() => {
     renderInto(elRef.current, value);
-    lastValueRef.current = value;
+    lastValueRef.current = value ?? '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const emitChange = () => {
     const next = serialize(elRef.current);
+    if (next === lastValueRef.current) return; // ничего не изменилось (например, input после execCommand)
     lastValueRef.current = next;
+    pendingRef.current = [...pendingRef.current, next].slice(-50);
     onChange(next);
   };
 
