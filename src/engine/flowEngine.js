@@ -13,6 +13,7 @@
 // `sourceHandle` is used for branching nodes (condition -> 'true' | 'false').
 // Nodes with a single output just use the default (null/undefined) handle.
 
+import { variableRegExp, normalizeVariableName } from './textChips.js';
 import { getHandler } from './nodeHandlers.js';
 
 const MAX_STEPS = 300; // guards against accidental infinite loops via chains
@@ -107,7 +108,8 @@ async function walk(node, graph, context, api, steps, visitedThisPass) {
 /** Render {{variable}} placeholders in a template string against context. */
 export function interpolate(template, context) {
   if (typeof template !== 'string') return template;
-  return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
+  return template.replace(variableRegExp(), (_, rawKey) => {
+    const key = normalizeVariableName(rawKey);
     if (key === 'last_message') return context.lastMessage ?? '';
     if (context.variables && key in context.variables) return context.variables[key];
     if (context.globalVariables && key in context.globalVariables) return context.globalVariables[key];

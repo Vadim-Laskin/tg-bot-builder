@@ -71,17 +71,38 @@ export default function ChipTextarea({ value, onChange, variableDefs, placeholde
     }
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return; // let a real selection delete normally
-      const range = sel.getRangeAt(0);
-      const chip = findAdjacentChip(range, e.key === 'Backspace' ? 'before' : 'after');
-      if (chip) {
-        e.preventDefault();
-        chip.remove();
-        emitChange();
-      }
+      if (deleteChipNextToCaret(e.key === 'Backspace' ? 'before' : 'after')) e.preventDefault();
     }
   };
+
+  // Клавиатуры телефонов (Gboard и др.) часто шлют Backspace как «Unidentified»/keyCode 229 —
+  // keydown с key === 'Backspace' не приходит, и чип стирался бы по одному символу или не удалялся.
+  // Зато удаление всегда проходит через beforeinput, его ловим отдельно.
+  // Нативный слушатель, а не React onBeforeInput: тот не настоящий beforeinput.
+  const deleteRef = useRef(null);
+  deleteRef.current = deleteChipNextToCaret;
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return undefined;
+    const onBeforeInput = (e) => {
+      if (e.inputType !== 'deleteContentBackward' && e.inputType !== 'deleteContentForward') return;
+      if (deleteRef.current(e.inputType === 'deleteContentBackward' ? 'before' : 'after')) e.preventDefault();
+    };
+    el.addEventListener('beforeinput', onBeforeInput);
+    return () => el.removeEventListener('beforeinput', onBeforeInput);
+  }, []);
+
+  // Если рядом с курсором (и ничего не выделено) стоит чип переменной — удаляем его целиком.
+  function deleteChipNextToCaret(side) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return false; // выделение удаляется обычным образом
+    if (!elRef.current?.contains(sel.anchorNode)) return false;
+    const chip = findAdjacentChip(sel.getRangeAt(0), side);
+    if (!chip) return false;
+    chip.remove();
+    emitChange();
+    return true;
+  }
 
   const onPaste = (e) => {
     e.preventDefault();
@@ -150,14 +171,20 @@ export default function ChipTextarea({ value, onChange, variableDefs, placeholde
 function findAdjacentChip(range, side) {
   const { startContainer, startOffset } = range;
   const isChip = (n) => n?.nodeType === 1 && n.classList?.contains('var-chip');
+  const isEmptyText = (n) => n?.nodeType === Node.TEXT_NODE && n.textContent === '';
+  // после стирания текста рядом с чипом остаются пустые текстовые узлы — перешагиваем через них
+  const skip = (n, dir) => {
+    while (isEmptyText(n)) n = dir === 'before' ? n.previousSibling : n.nextSibling;
+    return n;
+  };
 
   if (startContainer.nodeType === Node.TEXT_NODE) {
     if (side === 'before' && startOffset === 0) {
-      const prev = startContainer.previousSibling;
+      const prev = skip(startContainer.previousSibling, 'before');
       return isChip(prev) ? prev : null;
     }
     if (side === 'after' && startOffset === startContainer.textContent.length) {
-      const next = startContainer.nextSibling;
+      const next = skip(startContainer.nextSibling, 'after');
       return isChip(next) ? next : null;
     }
     return null;
@@ -165,8 +192,10 @@ function findAdjacentChip(range, side) {
 
   // caret sits directly in the element (e.g. an empty field, or right
   // between two sibling nodes) — startOffset is a child index there
-  const sibling =
-    side === 'before' ? startContainer.childNodes[startOffset - 1] : startContainer.childNodes[startOffset];
+  const sibling = skip(
+    side === 'before' ? startContainer.childNodes[startOffset - 1] : startContainer.childNodes[startOffset],
+    side
+  );
   return isChip(sibling) ? sibling : null;
 }
 
