@@ -6,10 +6,11 @@ import VariableInserter from './VariableInserter.jsx';
 import ChipTextarea from './ChipTextarea.jsx';
 import ButtonEditor from './ButtonEditor.jsx';
 import NodeButtons from './nodes/NodeButtons.jsx';
+import { chainMode } from '../engine/chains.js';
 
 export default function PropertiesPanel({
   node,
-  otherFlows,
+  chains, // все цепочки бота: [{ chainId, chainName, flowId, flowName, nodeId }]
   flowNodes,
   variableDefs,
   tagDefs,
@@ -577,25 +578,7 @@ export default function PropertiesPanel({
         </>
       )}
 
-      {node.type === 'chain' && (
-        <Field label="Какую цепочку вызвать">
-          <select
-            className="select"
-            value={data.flowId}
-            onChange={(e) => {
-              const flow = otherFlows.find((f) => f.id === e.target.value);
-              set({ flowId: e.target.value, flowName: flow?.name ?? '' });
-            }}
-          >
-            <option value="">— выбрать —</option>
-            {otherFlows.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
+      {node.type === 'chain' && <ChainFields nodeId={node.id} data={data} set={set} chains={chains ?? []} />}
 
       {node.type === 'setVariable' && (
         <>
@@ -695,6 +678,97 @@ function Field({ label, children }) {
       <span className="field__label">{label}</span>
       {children}
     </div>
+  );
+}
+
+const hintStyle = { fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 14px' };
+
+// «Новая» — начало цепочки (нужно придумать название),
+// «Переход к …» — продолжение: выбираем одну из цепочек бота, лежащих в любых сценариях
+function ChainFields({ nodeId, data, set, chains }) {
+  const mode = chainMode(data);
+
+  const switchMode = (next) => {
+    if (next === mode) return;
+    set(
+      next === 'new'
+        ? { mode: 'new', chainId: nanoid(8), chainName: '', flowId: '', flowName: '' }
+        : { mode: 'goto', chainId: '', chainName: '', flowId: '', flowName: '' }
+    );
+  };
+
+  const name = (data.chainName ?? '').trim().toLowerCase();
+  const nameTaken = name && chains.some((c) => c.nodeId !== nodeId && c.chainName.trim().toLowerCase() === name);
+
+  const selected = chains.find((c) => c.chainId === data.chainId);
+  const deleted = mode === 'goto' && data.chainId && !selected;
+
+  return (
+    <>
+      <Field label="Цепочка">
+        <select className="select" value={mode} onChange={(e) => switchMode(e.target.value)}>
+          <option value="new">Новая (начало цепочки)</option>
+          <option value="goto">Переход к …</option>
+        </select>
+      </Field>
+
+      {mode === 'new' ? (
+        <>
+          <Field label="Название цепочки">
+            <input
+              className="input"
+              value={data.chainName ?? ''}
+              placeholder="Например: Админка"
+              onChange={(e) => set({ chainName: e.target.value, chainId: data.chainId || nanoid(8) })}
+            />
+          </Field>
+          <p style={hintStyle}>
+            Подключите блоки после этого «Начала». Они выполнятся, когда в любом сценарии бота сработает
+            «Переход к …» с этим названием.
+          </p>
+          {nameTaken && (
+            <p style={{ ...hintStyle, color: 'var(--danger, #f87171)' }}>
+              Цепочка с таким названием уже есть — в списке переходов их будет не отличить.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <Field label="Перейти к цепочке">
+            <select
+              className="select"
+              value={data.chainId ?? ''}
+              onChange={(e) => {
+                const c = chains.find((x) => x.chainId === e.target.value);
+                set({ chainId: e.target.value, chainName: c?.chainName ?? '', flowId: '', flowName: '' });
+              }}
+            >
+              <option value="">— выбрать —</option>
+              {deleted && <option value={data.chainId}>{data.chainName || 'цепочка'} (удалена)</option>}
+              {chains.map((c) => (
+                <option key={c.chainId} value={c.chainId}>
+                  {c.chainName || 'без названия'} · сценарий «{c.flowName}»
+                </option>
+              ))}
+            </select>
+          </Field>
+          {chains.length === 0 && (
+            <p style={hintStyle}>
+              Цепочек пока нет. В нужном сценарии добавьте блок «Цепочка» → «Новая» и придумайте название.
+            </p>
+          )}
+          {deleted && (
+            <p style={{ ...hintStyle, color: 'var(--danger, #f87171)' }}>
+              Блок «Начало» этой цепочки удалили — выберите другую.
+            </p>
+          )}
+          {!data.chainId && data.flowId && (
+            <p style={hintStyle}>Блок создан в старой версии — выберите цепочку заново.</p>
+          )}
+          <p style={hintStyle}>После перехода бот продолжает в выбранной цепочке; этот сценарий дальше не идёт.</p>
+        </>
+      )}
+    </>
   );
 }
 

@@ -2,6 +2,8 @@
 // HTTP-запросы из блока «Действие», пауза и поиск цепочек. Telegram- и
 // VK-вебхуки добавляют сюда свои sendMessage/editMessage/deleteMessage.
 
+import { findChainStart } from '../../src/engine/chains.js';
+
 export function buildCommonApi({ groqApiKey, flows }) {
   return {
     async callGroq({ model, systemPrompt, userPrompt }) {
@@ -49,9 +51,9 @@ export function buildCommonApi({ groqApiKey, flows }) {
       await new Promise((r) => setTimeout(r, Math.min(Number(ms) || 0, 4000)));
     },
 
-    async resolveChain(flowId) {
-      const f = flows.find((fl) => fl.id === flowId);
-      return f ? { nodes: f.graph?.nodes ?? [], edges: f.graph?.edges ?? [] } : null;
+    // ищет «Начало» цепочки среди всех сценариев бота
+    async resolveChain(ref) {
+      return findChainStart(flows, ref);
     },
 
     log(msg) {

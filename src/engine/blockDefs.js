@@ -129,11 +129,17 @@ export const BLOCK_DEFS = {
   chain: {
     type: 'chain',
     label: 'Цепочка',
-    description: 'Переиспользуемый под-сценарий из другого флоу.',
+    description: 'Связывает сценарии: «Новая» — начало цепочки с названием, «Переход к …» — продолжение в другом сценарии.',
     category: 'structure',
     color: 'var(--wire-chain)',
+    // входной порт скрыт у «Новой» (это начало), выходной — у «Перехода» (после него сценарий не продолжается);
+    // см. BlockNode.jsx
     ports: { in: true, out: true },
-    defaultData: { flowId: '', flowName: '' }
+    defaultData: {
+      mode: 'new', // new — начало цепочки | goto — переход к цепочке
+      chainId: '', // new: свой id (создаётся автоматически) | goto: id выбранной цепочки
+      chainName: '' // new: название, которое вы придумали | goto: копия названия для подписи на блоке
+    }
   },
 
   setVariable: {

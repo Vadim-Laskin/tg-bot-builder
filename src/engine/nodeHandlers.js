@@ -8,6 +8,9 @@
 import { interpolate } from './flowEngine.js';
 import { getButtonId, buildCallbackData } from './buttonId.js';
 import { extractUrls, fetchUrlContent } from './webContent.js';
+import { chainMode } from './chains.js';
+
+const MAX_CHAIN_DEPTH = 20; // переходы A → B → A → … не должны крутиться вечно
 
 const handlers = {
   note: async () => ({ next: 'default' }), // visual only, no-op at runtime
@@ -153,20 +156,48 @@ const handlers = {
     return { next: passed ? 'true' : 'false' };
   },
 
+  // «Начало» цепочки само ничего не делает — просто идёт дальше по стрелке.
+  // «Переход к …» находит «Начало» нужной цепочки (в любом сценарии бота) и
+  // продолжает выполнение оттуда; после перехода текущий сценарий не продолжается.
   chain: async (node, context, api) => {
-    const subGraph = await api.resolveChain?.(node.data.flowId);
-    if (!subGraph) {
-      api.log?.(`Цепочка не найдена: ${node.data.flowId}`);
-      return { next: 'default' };
+    if (chainMode(node.data) === 'new') return { next: 'default' };
+
+    const { chainId, chainName, flowId } = node.data;
+    if (!chainId && !flowId) {
+      api.log?.('Блок «Переход к цепочке»: цепочка не выбрана.');
+      return { next: 'stop' };
     }
+
+    const target = await api.resolveChain?.({ chainId, flowId });
+    if (!target) {
+      api.log?.(`Цепочка «${chainName || chainId}» не найдена — возможно, блок «Начало» удалили.`);
+      return { next: 'stop' };
+    }
+    if (!target.graph.edges.some((e) => e.source === target.nodeId)) {
+      api.log?.(`Цепочка «${target.chainName}» пустая: после её «Начала» нет блоков.`);
+      return { next: 'stop' };
+    }
+
+    const depth = context.chainDepth ?? 0;
+    if (depth >= MAX_CHAIN_DEPTH) {
+      api.log?.('Слишком много переходов между цепочками подряд — остановился, проверьте, нет ли цикла.');
+      return { next: 'stop' };
+    }
+
     const { runFlow } = await import('./flowEngine.js');
-    await runFlow({
-      graph: subGraph,
-      trigger: { type: 'command', value: '__chain_entry__' },
-      context,
-      api
-    });
-    return { next: 'default' };
+    context.chainDepth = depth + 1;
+    try {
+      // «resume» от «Начала»: идём по его выходной стрелке, сам блок не выполняем
+      await runFlow({
+        graph: target.graph,
+        trigger: { type: 'resume', nodeId: target.nodeId, handle: 'default' },
+        context,
+        api
+      });
+    } finally {
+      context.chainDepth = depth;
+    }
+    return { next: 'stop' };
   },
 
   setVariable: async (node, context) => {

@@ -3,6 +3,7 @@ import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { BLOCK_DEFS } from '../../engine/blockDefs.js';
 import ChipText from '../ChipText.jsx';
 import NodeButtons from './NodeButtons.jsx';
+import { chainMode } from '../../engine/chains.js';
 
 function summarize(type, data) {
   switch (type) {
@@ -37,7 +38,9 @@ function summarize(type, data) {
       }
       return `${data.variableName || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
-      return data.flowName || 'не выбрана';
+      return chainMode(data) === 'new'
+        ? `▶ Начало: ${data.chainName || 'без названия'}`
+        : `→ Переход к: ${data.chainName || data.flowName || 'цепочка не выбрана'}`;
     case 'setVariable':
       return `${data.variableName || '—'} (${data.scope === 'global' ? 'общая' : 'личная'}) ${data.op} ${
         data.op === 'clear' ? '' : data.value ?? ''
@@ -87,9 +90,15 @@ export default function BlockNode({ id, type, data, selected }) {
   if (!def) return null;
   const body = summarize(type, data);
 
+  // «Цепочка → Новая» — это начало, в неё ничего не входит;
+  // «Цепочка → Переход» — после него сценарий не продолжается, выхода нет
+  const isChain = type === 'chain';
+  const hasIn = def.ports.in && !(isChain && chainMode(data) === 'new');
+  const hasOut = def.ports.out && !(isChain && chainMode(data) === 'goto');
+
   return (
     <div className={`node${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
-      {def.ports.in && <Handle type="target" position={Position.Left} />}
+      {hasIn && <Handle type="target" position={Position.Left} />}
 
       <div className="node__header">
         <span className="node__dot" style={type === 'setTag' && data.color ? { background: data.color } : undefined} />
@@ -126,7 +135,7 @@ export default function BlockNode({ id, type, data, selected }) {
             <Handle type="source" position={Position.Right} id="false" style={{ top: '68%' }} />
           </>
         ) : (
-          def.ports.out && <Handle type="source" position={Position.Right} />
+          hasOut && <Handle type="source" position={Position.Right} />
         ))}
     </div>
   );

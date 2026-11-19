@@ -27,6 +27,14 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
   const push = (item) => setItems((s) => [...s, { id: nextItemId(), ...item }]);
 
+  // продолжение с кнопки/ответа идёт в том сценарии, где лежит блок: после «Перехода к …»
+  // он может быть не на открытом холсте (так же делает настоящий бот)
+  const graphForNode = (nodeId) => {
+    if (graph.nodes.some((n) => n.id === nodeId)) return graph;
+    const f = (allFlows ?? []).find((fl) => fl.nodes?.some((n) => n.id === nodeId));
+    return f ? { nodes: f.nodes, edges: f.edges } : graph;
+  };
+
   const makeApi = () =>
     createMockApi({
       onMessage: ({ id, text: t, buttons, toOtherChat, chatId }) =>
@@ -78,7 +86,12 @@ export default function TestPanel({ graph, allFlows, onClose }) {
         : { type: 'text', value: text };
     }
 
-    await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
+    await runFlow({
+      graph: trigger.type === 'resume' ? graphForNode(trigger.nodeId) : graph,
+      trigger,
+      context: contextRef.current,
+      api: makeApi()
+    });
   };
 
   const pressButton = async (item, button) => {
@@ -94,7 +107,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
         return;
       }
       await runFlow({
-        graph,
+        graph: graphForNode(target.nodeId),
         trigger: { type: 'resume', nodeId: target.nodeId, handle: `btn-${target.buttonId}` },
         context: contextRef.current,
         api: makeApi()
@@ -123,10 +136,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
     contextRef.current.sourceMessageId = item.id; // lets "Редактировать предыдущее" find this bubble
 
-    // only works if the target block lives in the scenario currently open
-    // on the canvas — if it's in a different scenario (chain), open that
-    // one to test it, the real bot always resolves this correctly
-    await runFlow({ graph, trigger, context: contextRef.current, api: makeApi() });
+    await runFlow({ graph: graphForNode(parsed.nodeId), trigger, context: contextRef.current, api: makeApi() });
   };
 
   const toggleChatKind = () => {

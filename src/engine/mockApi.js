@@ -4,6 +4,8 @@
 // sendMessage, editMessage, deleteMessage, callGroq, httpRequest,
 // resolveChain, log.
 
+import { findChainStart } from './chains.js';
+
 let previewMessageSeq = 0;
 
 export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog, flows = [], ownChatId = 'preview' } = {}) {
@@ -38,9 +40,8 @@ export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog
     async sendChatAction() {
       onLog?.('… печатает');
     },
-    async resolveChain(flowId) {
-      const found = flows.find((f) => f.id === flowId);
-      return found ? { nodes: found.nodes, edges: found.edges } : null;
+    async resolveChain(ref) {
+      return findChainStart(flows, ref);
     },
     log(msg) {
       onLog?.(msg);

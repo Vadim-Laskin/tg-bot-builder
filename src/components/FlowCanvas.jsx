@@ -19,6 +19,7 @@ import { ButtonsContext } from './ButtonsContext.js';
 import { normalizeButtonIds } from '../lib/normalizeButtons.js';
 import TestPanel from './TestPanel.jsx';
 import { BLOCK_DEFS } from '../engine/blockDefs.js';
+import { chainMode, listChains } from '../engine/chains.js';
 import { useBotStore } from '../store/useBotStore.js';
 import { supabase } from '../lib/supabaseClient.js';
 
@@ -92,6 +93,7 @@ function InnerCanvas({ bot, flow }) {
         : { x: 300, y: 300 };
       const position = screenToFlowPosition(centerScreen);
       const newNode = { id: nanoid(8), type: blockType, position, data: structuredClone(def.defaultData) };
+      if (blockType === 'chain') newNode.data.chainId = nanoid(8); // «Новая» цепочка сразу получает свой id
       setNodes((nds) => nds.concat(newNode));
       setSelectedId(newNode.id);
       setAddBlockOpen(false);
@@ -197,10 +199,28 @@ function InnerCanvas({ bot, flow }) {
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
 
-  const otherFlows = useMemo(
-    () => bot.flows.filter((f) => f.id !== flow.id).map((f) => ({ id: f.id, name: f.name })),
-    [bot.flows, flow.id]
+  // все сценарии бота, но открытый — с тем, что сейчас на холсте (в сторе оно отстаёт на долю секунды)
+  const liveFlows = useMemo(
+    () => bot.flows.map((f) => (f.id === flow.id ? { ...f, nodes, edges } : f)),
+    [bot.flows, flow.id, nodes, edges]
   );
+  // цепочки всех сценариев: из них выбирается «Переход к …»
+  const chains = useMemo(() => listChains(liveFlows), [liveFlows]);
+
+  // название цепочки поменяли — подписи в блоках «Переход» этого сценария подтягиваются сами
+  useEffect(() => {
+    setNodes((nds) => {
+      let changed = false;
+      const next = nds.map((n) => {
+        if (n.type !== 'chain' || chainMode(n.data) !== 'goto' || !n.data.chainId) return n;
+        const c = chains.find((x) => x.chainId === n.data.chainId);
+        if (!c || c.chainName === n.data.chainName) return n;
+        changed = true;
+        return { ...n, data: { ...n.data, chainName: c.chainName } };
+      });
+      return changed ? next : nds;
+    });
+  }, [chains, setNodes]);
 
   // for the "Отправить в чат" block's group/user pickers — loaded once per
   // bot, not kept live-updated, since picking a stale-by-a-minute chat is
@@ -259,7 +279,7 @@ function InnerCanvas({ bot, flow }) {
         </ReactFlow>
 
         {showTest ? (
-          <TestPanel graph={{ nodes, edges }} allFlows={bot.flows} onClose={() => setShowTest(false)} />
+          <TestPanel graph={{ nodes, edges }} allFlows={liveFlows} onClose={() => setShowTest(false)} />
         ) : (
           <button className="btn btn--primary test-fab" onClick={() => setShowTest(true)}>
             🧪 Тест
@@ -269,7 +289,7 @@ function InnerCanvas({ bot, flow }) {
 
       <PropertiesPanel
         node={selectedNode}
-        otherFlows={otherFlows}
+        chains={chains}
         flowNodes={nodes}
         variableDefs={bot.variableDefs}
         tagDefs={bot.tagDefs}
