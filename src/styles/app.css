@@ -1200,6 +1200,11 @@
   white-space: nowrap;
 }
 
+/* в поле ввода подпись чипа — псевдоэлемент, а не текст (см. makeChipEl в ChipTextarea.jsx) */
+.chip-textarea .var-chip::before {
+  content: attr(data-var-name);
+}
+
 .registry-add {
   display: flex;
   flex-direction: column;

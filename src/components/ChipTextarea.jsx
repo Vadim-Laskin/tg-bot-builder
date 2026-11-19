@@ -204,7 +204,10 @@ function makeChipEl(name) {
   chip.className = 'var-chip';
   chip.contentEditable = 'false';
   chip.dataset.varName = name;
-  chip.textContent = name;
+  // Текста внутри чипа нет намеренно: подпись рисует CSS (.chip-textarea .var-chip::before).
+  // Если имя лежит в DOM текстом, клавиатура телефона принимает его за слово рядом с курсором,
+  // на пробеле «исправляет» это слово и вставляет его после чипа ещё раз (а при стирании — снова и снова).
+  chip.setAttribute('aria-label', name);
   return chip;
 }
 
