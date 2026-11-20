@@ -9,6 +9,7 @@ export default function BotEditorView({ onBack }) {
   const bot = useBotStore((s) => s.getActiveBot());
   const flow = useBotStore((s) => s.getActiveFlow());
   const renameFlow = useBotStore((s) => s.renameFlow);
+  const deleteFlow = useBotStore((s) => s.deleteFlow);
   const [modal, setModal] = useState(null); // null | 'variables' | 'tags'
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -31,6 +32,15 @@ export default function BotEditorView({ onBack }) {
   const openModal = (name) => {
     setMenuOpen(false);
     setModal(name);
+  };
+
+  const removeFlow = async () => {
+    setMenuOpen(false);
+    if (!flow || flow.isMain) return;
+    if (!confirm(`Удалить сценарий «${flow.name}» вместе со всеми блоками? Блоки «Цепочка», которые ведут в него, перестанут работать.`)) return;
+    const ok = await deleteFlow(bot.id, flow.id);
+    if (ok) onBack();
+    else alert('Не удалось удалить сценарий. Попробуйте ещё раз.');
   };
 
   if (!bot || !flow) {
@@ -87,6 +97,17 @@ export default function BotEditorView({ onBack }) {
                 </span>
                 Теги
               </button>
+              {!flow.isMain && (
+                <>
+                  <div className="usermenu__sep" />
+                  <button className="usermenu__item usermenu__item--danger" role="menuitem" onClick={removeFlow}>
+                    <span className="usermenu__icon">
+                      <Icon name="trash" />
+                    </span>
+                    Удалить сценарий
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
