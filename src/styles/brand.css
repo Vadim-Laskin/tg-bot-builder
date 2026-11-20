@@ -820,3 +820,79 @@ body::before {
 .editor-menu__panel {
   width: 220px;
 }
+
+/* ---------- окно подтверждения ---------- */
+
+.confirm {
+  max-width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 22px 20px;
+}
+
+.confirm__icon {
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 20px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.confirm__icon--danger {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+.confirm__title {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.confirm__body {
+  color: var(--text-muted, var(--text-faint));
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.confirm__body p {
+  margin: 0 0 8px;
+}
+
+.confirm__warn {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--text);
+  text-align: left;
+}
+
+.confirm__actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.confirm__actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.btn--danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  filter: brightness(1.1);
+}

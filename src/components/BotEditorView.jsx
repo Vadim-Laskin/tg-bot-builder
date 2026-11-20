@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import FlowCanvas from './FlowCanvas.jsx';
 import VariablesModal from './VariablesModal.jsx';
 import TagsModal from './TagsModal.jsx';
+import ConfirmModal from './ConfirmModal.jsx';
+import { listChains, chainMode } from '../engine/chains.js';
 import { useBotStore } from '../store/useBotStore.js';
 
 export default function BotEditorView({ onBack }) {
@@ -13,6 +15,8 @@ export default function BotEditorView({ onBack }) {
   const [modal, setModal] = useState(null); // null | 'variables' | 'tags'
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // закрываем меню по клику снаружи и по Esc
   useEffect(() => {
@@ -34,11 +38,26 @@ export default function BotEditorView({ onBack }) {
     setModal(name);
   };
 
+  // сколько блоков «Переход к …» в других сценариях ведут в цепочки этого сценария
+  const incomingLinks = (() => {
+    if (!flow) return 0;
+    const mine = new Set(listChains([flow]).map((c) => c.chainId));
+    if (mine.size === 0) return 0;
+    let n = 0;
+    for (const f of bot?.flows ?? []) {
+      if (f.id === flow.id) continue;
+      for (const node of f.nodes ?? []) {
+        if (node.type === 'chain' && chainMode(node.data) === 'goto' && mine.has(node.data?.chainId)) n += 1;
+      }
+    }
+    return n;
+  })();
+
   const removeFlow = async () => {
-    setMenuOpen(false);
     if (!flow || flow.isMain) return;
-    if (!confirm(`Удалить сценарий «${flow.name}» вместе со всеми блоками? Блоки «Цепочка», которые ведут в него, перестанут работать.`)) return;
+    setDeleting(true);
     const ok = await deleteFlow(bot.id, flow.id);
+    setDeleting(false);
     if (ok) onBack();
     else alert('Не удалось удалить сценарий. Попробуйте ещё раз.');
   };
@@ -100,7 +119,10 @@ export default function BotEditorView({ onBack }) {
               {!flow.isMain && (
                 <>
                   <div className="usermenu__sep" />
-                  <button className="usermenu__item usermenu__item--danger" role="menuitem" onClick={removeFlow}>
+                  <button className="usermenu__item usermenu__item--danger" role="menuitem" onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmDelete(true);
+                    }}>
                     <span className="usermenu__icon">
                       <Icon name="trash" />
                     </span>
@@ -115,6 +137,26 @@ export default function BotEditorView({ onBack }) {
 
       <FlowCanvas bot={bot} flow={flow} />
 
+      {confirmDelete && (
+        <ConfirmModal
+          danger
+          title={`Удалить сценарий «${flow.name}»?`}
+          confirmLabel="Удалить"
+          busy={deleting}
+          onConfirm={removeFlow}
+          onClose={() => !deleting && setConfirmDelete(false)}
+        >
+          <p>
+            Сценарий и все его блоки ({flow.nodes.length}) будут удалены навсегда. Это действие нельзя отменить.
+          </p>
+          {incomingLinks > 0 && (
+            <p className="confirm__warn">
+              <Icon name="triangle-exclamation" gap />
+              Блоков «Переход к …» из других сценариев, которые ведут сюда: {incomingLinks}. Они перестанут работать.
+            </p>
+          )}
+        </ConfirmModal>
+      )}
       {modal === 'variables' && <VariablesModal bot={bot} onClose={() => setModal(null)} />}
       {modal === 'tags' && <TagsModal bot={bot} onClose={() => setModal(null)} />}
     </div>
