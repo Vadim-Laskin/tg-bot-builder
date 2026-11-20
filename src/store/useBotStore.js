@@ -236,6 +236,23 @@ export const useBotStore = create((set, get) => ({
     return flow.id;
   },
 
+  // Главный сценарий удалить нельзя — с него бот начинает отвечать.
+  async deleteFlow(botId, flowId) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const flow = bot?.flows.find((f) => f.id === flowId);
+    if (!flow || flow.isMain) return false;
+    const { error } = await supabase.from('flows').delete().eq('id', flowId).eq('is_main', false);
+    if (error) {
+      console.error('deleteFlow:', error.message);
+      return false;
+    }
+    set((s) => ({
+      bots: s.bots.map((b) => (b.id === botId ? { ...b, flows: b.flows.filter((f) => f.id !== flowId) } : b)),
+      activeFlowId: s.activeFlowId === flowId ? null : s.activeFlowId
+    }));
+    return true;
+  },
+
   async renameFlow(botId, flowId, name) {
     set((s) => ({
       bots: s.bots.map((b) =>

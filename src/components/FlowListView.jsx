@@ -11,6 +11,7 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
   const addChainFlow = useBotStore((s) => s.addChainFlow);
   const setBotSecrets = useBotStore((s) => s.setBotSecrets);
   const renameBot = useBotStore((s) => s.renameBot);
+  const deleteFlow = useBotStore((s) => s.deleteFlow);
 
   const [secretsOpen, setSecretsOpen] = useState(false);
 
@@ -35,6 +36,14 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
     if (!name) return;
     const id = await addChainFlow(bot.id, name);
     if (id) openFlow(id);
+  };
+
+  const removeFlow = async (e, f) => {
+    e.stopPropagation();
+    if (f.isMain) return;
+    if (!confirm(`Удалить сценарий «${f.name}» вместе со всеми блоками? Блоки «Цепочка», которые ведут в него, перестанут работать.`)) return;
+    const ok = await deleteFlow(bot.id, f.id);
+    if (!ok) alert('Не удалось удалить сценарий. Попробуйте ещё раз.');
   };
 
   return (
@@ -92,6 +101,16 @@ export default function FlowListView({ onOpenFlow, onOpenUsers, onOpenChannels, 
             <span className="flow-row__name">{f.name}</span>
             {f.isMain && <span className="flow-row__badge">Главный</span>}
             <span className="flow-row__meta">{f.nodes.length} блоков</span>
+            {!f.isMain && (
+              <button
+                className="flow-row__delete"
+                onClick={(e) => removeFlow(e, f)}
+                title="Удалить сценарий"
+                aria-label={`Удалить сценарий ${f.name}`}
+              >
+                <Icon name="trash" />
+              </button>
+            )}
             <span className="flow-row__arrow">
               <Icon name="chevron-right" />
             </span>
