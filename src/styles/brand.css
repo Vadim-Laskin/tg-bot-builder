@@ -896,3 +896,58 @@ body::before {
 .btn--danger-solid:hover:not(:disabled) {
   filter: brightness(1.1);
 }
+
+/* ---------- реестр переменных/тегов: переименование ---------- */
+
+.registry-row__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.registry-row__edit {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.registry-row__edit:hover,
+.registry-row__edit:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.registry-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.registry-edit__line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.registry-edit__input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.registry-edit__error {
+  font-size: 11.5px;
+  color: var(--danger);
+}

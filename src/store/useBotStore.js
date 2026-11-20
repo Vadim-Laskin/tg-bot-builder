@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabaseClient.js';
+import { renameInNodes } from '../engine/renameRefs.js';
 
 // Postgres tables (see supabase/schema.sql):
 //   bots(id, user_id, name, telegram_token, groq_api_key, variable_defs,
@@ -44,6 +45,7 @@ export const useBotStore = create((set, get) => ({
   activeBotId: null,
   activeFlowId: null,
   loading: false,
+  graphRev: 0, // растёт, когда блоки изменены «снаружи» холста (переименование переменной/тега)
 
   async fetchBots() {
     set({ loading: true });
@@ -189,6 +191,62 @@ export const useBotStore = create((set, get) => ({
     set((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, variableDefs: next } : b)) }));
     const { error } = await supabase.from('bots').update({ variable_defs: next }).eq('id', botId);
     if (error) console.error('deleteVariable:', error.message);
+  },
+
+  // Переименование переменной/тега (только название). Имя — ключ, по которому блоки и значения пользователей
+  // находят друг друга, поэтому меняем его везде: в реестре, в блоках всех сценариев и в сохранённых данных.
+  // Возвращает { ok, error?, flowsChanged }.
+  async renameRegistryItem(botId, kind, itemId, rawName) {
+    const bot = get().bots.find((b) => b.id === botId);
+    const key = kind === 'variable' ? 'variableDefs' : 'tagDefs';
+    const item = bot?.[key]?.find((d) => d.id === itemId);
+    const newName = String(rawName ?? '').replace(/\s+/g, ' ').trim();
+    if (!item) return { ok: false, error: 'Не найдено.' };
+    if (!newName) return { ok: false, error: 'Название не может быть пустым.' };
+    if (newName === item.name) return { ok: true, flowsChanged: 0 };
+    if (kind === 'variable' && !/^[\p{L}\p{N}_.]+(?:[ \t]+[\p{L}\p{N}_.]+)*$/u.test(newName)) {
+      return { ok: false, error: 'Только буквы, цифры, «_» и «.» (слова можно разделять пробелом).' };
+    }
+    if (bot[key].some((d) => d.id !== itemId && d.name.toLowerCase() === newName.toLowerCase())) {
+      return { ok: false, error: 'Такое название уже есть.' };
+    }
+
+    const oldName = item.name;
+    const nextDefs = bot[key].map((d) => (d.id === itemId ? { ...d, name: newName } : d));
+    const touchedFlows = [];
+    const nextFlows = bot.flows.map((f) => {
+      const r = renameInNodes(f.nodes, { kind, id: itemId, oldName, newName });
+      if (!r.changed) return f;
+      touchedFlows.push({ id: f.id, nodes: r.nodes, edges: f.edges });
+      return { ...f, nodes: r.nodes };
+    });
+
+    set((s) => ({
+      bots: s.bots.map((b) => (b.id === botId ? { ...b, [key]: nextDefs, flows: nextFlows } : b)),
+      graphRev: s.graphRev + 1
+    }));
+
+    const dbKey = kind === 'variable' ? 'variable_defs' : 'tag_defs';
+    const results = await Promise.all([
+      supabase.from('bots').update({ [dbKey]: nextDefs }).eq('id', botId),
+      ...touchedFlows.map((f) => supabase.from('flows').update({ graph: { nodes: f.nodes, edges: f.edges } }).eq('id', f.id))
+    ]);
+    const failed = results.find((r) => r.error);
+    if (failed) {
+      console.error('renameRegistryItem:', failed.error.message);
+      return { ok: false, error: 'Не удалось сохранить. Попробуйте ещё раз.' };
+    }
+
+    // значения пользователей и общие значения хранятся под старым именем — переносим (функция из supabase/schema.sql;
+    // если её ещё не добавили в базу, название всё равно поменяется, просто старые значения останутся под прежним именем)
+    const { error: moveError } = await supabase.rpc('rename_bot_state_key', {
+      p_bot: botId,
+      p_kind: kind,
+      p_old: oldName,
+      p_new: newName
+    });
+    if (moveError) console.warn('rename_bot_state_key:', moveError.message);
+    return { ok: true, flowsChanged: touchedFlows.length, stateMoved: !moveError };
   },
 
   async createTag(botId, { name, color, scope }) {

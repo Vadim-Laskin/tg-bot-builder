@@ -1,12 +1,14 @@
 import Icon from './Icon.jsx';
 import { useState } from 'react';
 import Modal from './Modal.jsx';
+import RegistryName from './RegistryName.jsx';
 import { useBotStore } from '../store/useBotStore.js';
 import { TAG_COLORS } from '../engine/tagColors.js';
 
 export default function TagsModal({ bot, onClose }) {
   const createTag = useBotStore((s) => s.createTag);
   const deleteTag = useBotStore((s) => s.deleteTag);
+  const renameItem = useBotStore((s) => s.renameRegistryItem);
   const [name, setName] = useState('');
   const [scope, setScope] = useState('personal');
   const [color, setColor] = useState(TAG_COLORS[0]);
@@ -30,7 +32,7 @@ export default function TagsModal({ bot, onClose }) {
         {bot.tagDefs.map((t) => (
           <div className="registry-row" key={t.id}>
             <span className="registry-row__dot" style={{ background: t.color }} />
-            <span className="registry-row__name">{t.name}</span>
+            <RegistryName name={t.name} onRename={(n) => renameItem(bot.id, 'tag', t.id, n)} />
             <span className="registry-row__badge">{t.scope === 'global' ? 'общий' : 'личный'}</span>
             <button className="btn btn--sm btn--danger" onClick={() => deleteTag(bot.id, t.id)}>
               <Icon name="xmark" />

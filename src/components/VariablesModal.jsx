@@ -1,12 +1,14 @@
 import Icon from './Icon.jsx';
 import { useState } from 'react';
 import Modal from './Modal.jsx';
+import RegistryName from './RegistryName.jsx';
 import { useBotStore } from '../store/useBotStore.js';
 import { VARIABLE_COLOR } from '../engine/tagColors.js';
 
 export default function VariablesModal({ bot, onClose }) {
   const createVariable = useBotStore((s) => s.createVariable);
   const deleteVariable = useBotStore((s) => s.deleteVariable);
+  const renameItem = useBotStore((s) => s.renameRegistryItem);
   const [name, setName] = useState('');
   const [scope, setScope] = useState('personal');
 
@@ -29,7 +31,7 @@ export default function VariablesModal({ bot, onClose }) {
         {bot.variableDefs.map((v) => (
           <div className="registry-row" key={v.id}>
             <span className="registry-row__dot" style={{ background: VARIABLE_COLOR }} />
-            <span className="registry-row__name">{v.name}</span>
+            <RegistryName name={v.name} onRename={(n) => renameItem(bot.id, 'variable', v.id, n)} />
             <span className="registry-row__badge">{v.scope === 'global' ? 'общая' : 'личная'}</span>
             <button className="btn btn--sm btn--danger" onClick={() => deleteVariable(bot.id, v.id)}>
               <Icon name="xmark" />

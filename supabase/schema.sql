@@ -429,3 +429,38 @@ create policy "broadcasts: owner can read" on public.broadcasts
     exists (select 1 from public.bots b where b.id = broadcasts.bot_id and b.user_id = auth.uid())
   );
 -- insert/update/delete и вся таблица получателей — только service role (функция broadcast)
+
+
+-- 9. Переименование переменной/тега: переносит сохранённые значения со старого имени на новое
+--    (по каждому чату и общие значения бота). Вызывается из редактора; работает только для владельца бота.
+create or replace function public.rename_bot_state_key(p_bot uuid, p_kind text, p_old text, p_new text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.bots where id = p_bot and user_id = auth.uid()) then
+    raise exception 'forbidden';
+  end if;
+
+  if p_kind = 'variable' then
+    update public.chat_state
+       set variables = (variables - p_old) || jsonb_build_object(p_new, variables -> p_old)
+     where bot_id = p_bot and variables ? p_old;
+    update public.bots
+       set global_variables = (global_variables - p_old) || jsonb_build_object(p_new, global_variables -> p_old)
+     where id = p_bot and global_variables ? p_old;
+  elsif p_kind = 'tag' then
+    update public.chat_state
+       set tags = (tags - p_old) || to_jsonb(p_new)
+     where bot_id = p_bot and tags ? p_old;
+    update public.bots
+       set global_tags = (global_tags - p_old) || to_jsonb(p_new)
+     where id = p_bot and global_tags ? p_old;
+  end if;
+end;
+$$;
+
+revoke all on function public.rename_bot_state_key(uuid, text, text, text) from public;
+grant execute on function public.rename_bot_state_key(uuid, text, text, text) to authenticated;

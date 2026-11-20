@@ -40,6 +40,7 @@ export default function FlowCanvas({ bot, flow }) {
 
 function InnerCanvas({ bot, flow }) {
   const updateFlowGraph = useBotStore((s) => s.updateFlowGraph);
+  const graphRev = useBotStore((s) => s.graphRev);
   const [nodes, setNodes, onNodesChange] = useNodesState(flow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flow.edges);
   const [selectedId, setSelectedId] = useState(null);
@@ -57,7 +58,7 @@ function InnerCanvas({ bot, flow }) {
     setEdges(fixed.edges);
     setSelectedId(null);
     setEditing(null);
-  }, [flow.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flow.id, graphRev]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // autosave, debounced on any graph change
   useEffect(() => {
