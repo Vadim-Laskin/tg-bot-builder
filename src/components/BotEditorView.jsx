@@ -1,5 +1,5 @@
 import Icon from './Icon.jsx';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FlowCanvas from './FlowCanvas.jsx';
 import VariablesModal from './VariablesModal.jsx';
 import TagsModal from './TagsModal.jsx';
@@ -10,6 +10,28 @@ export default function BotEditorView({ onBack }) {
   const flow = useBotStore((s) => s.getActiveFlow());
   const renameFlow = useBotStore((s) => s.renameFlow);
   const [modal, setModal] = useState(null); // null | 'variables' | 'tags'
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // закрываем меню по клику снаружи и по Esc
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (e) => {
+      if (!menuRef.current?.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const openModal = (name) => {
+    setMenuOpen(false);
+    setModal(name);
+  };
 
   if (!bot || !flow) {
     return (
@@ -40,14 +62,34 @@ export default function BotEditorView({ onBack }) {
 
         <div className="editor-topbar__spacer" />
 
-        <button className="btn btn--sm" onClick={() => setModal('variables')}>
-          <Icon name="hashtag" gap />
-          Переменные
-        </button>
-        <button className="btn btn--sm" onClick={() => setModal('tags')}>
-          <Icon name="tag" gap />
-          Теги
-        </button>
+        <div className="editor-menu usermenu" ref={menuRef}>
+          <button
+            className="btn btn--sm editor-menu__trigger"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Переменные и теги"
+            title="Переменные и теги"
+          >
+            <Icon name="ellipsis" />
+          </button>
+          {menuOpen && (
+            <div className="usermenu__panel editor-menu__panel" role="menu">
+              <button className="usermenu__item" role="menuitem" onClick={() => openModal('variables')}>
+                <span className="usermenu__icon">
+                  <Icon name="hashtag" />
+                </span>
+                Переменные
+              </button>
+              <button className="usermenu__item" role="menuitem" onClick={() => openModal('tags')}>
+                <span className="usermenu__icon">
+                  <Icon name="tag" />
+                </span>
+                Теги
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <FlowCanvas bot={bot} flow={flow} />

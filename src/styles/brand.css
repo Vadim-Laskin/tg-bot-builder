@@ -786,3 +786,37 @@ body::before {
   align-items: center;
   gap: 7px;
 }
+
+/* ---------- редактор: меню «⋯» (переменные и теги) ---------- */
+
+.editor-topbar {
+  position: relative;
+  z-index: 30; /* выпадающий список должен лежать поверх холста */
+  min-width: 0;
+}
+
+.editor-topbar__crumb,
+.editor-topbar__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-topbar__crumb {
+  flex: 0 1 auto;
+  max-width: 40%;
+}
+
+.editor-topbar__name {
+  flex: 0 1 auto;
+}
+
+.editor-menu {
+  position: relative;
+  flex: none;
+}
+
+.editor-menu__panel {
+  width: 200px;
+}
