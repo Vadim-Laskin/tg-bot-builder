@@ -81,12 +81,32 @@ export default function ChipTextarea({ value, onChange, variableDefs, placeholde
   // Нативный слушатель, а не React onBeforeInput: тот не настоящий beforeinput.
   const deleteRef = useRef(null);
   deleteRef.current = deleteChipNextToCaret;
+  const emitRef = useRef(null);
+  emitRef.current = emitChange;
   useEffect(() => {
     const el = elRef.current;
     if (!el) return undefined;
     const onBeforeInput = (e) => {
       if (e.inputType !== 'deleteContentBackward' && e.inputType !== 'deleteContentForward') return;
-      if (deleteRef.current(e.inputType === 'deleteContentBackward' ? 'before' : 'after')) e.preventDefault();
+      const side = e.inputType === 'deleteContentBackward' ? 'before' : 'after';
+      if (deleteRef.current(side)) {
+        e.preventDefault();
+        return;
+      }
+      // положение курсора клавиатура иногда сообщает неточно, зато в targetRanges видно, что она собирается стереть
+      const sel = window.getSelection();
+      if (!sel?.isCollapsed) return;
+      const hit = [];
+      for (const tr of e.getTargetRanges?.() ?? []) {
+        const r = document.createRange();
+        r.setStart(tr.startContainer, tr.startOffset);
+        r.setEnd(tr.endContainer, tr.endOffset);
+        el.querySelectorAll('.var-chip').forEach((c) => r.intersectsNode(c) && hit.push(c));
+      }
+      if (hit.length === 0) return;
+      e.preventDefault();
+      hit.forEach((c) => c.remove());
+      emitRef.current();
     };
     el.addEventListener('beforeinput', onBeforeInput);
     return () => el.removeEventListener('beforeinput', onBeforeInput);
@@ -199,14 +219,20 @@ function findAdjacentChip(range, side) {
   return isChip(sibling) ? sibling : null;
 }
 
+// невидимый символ-«тело» чипа; в значение поля никогда не попадает (см. serialize)
+const CHIP_MARK = '\u200B';
+
 function makeChipEl(name) {
   const chip = document.createElement('span');
   chip.className = 'var-chip';
   chip.contentEditable = 'false';
   chip.dataset.varName = name;
-  // Текста внутри чипа нет намеренно: подпись рисует CSS (.chip-textarea .var-chip::before).
-  // Если имя лежит в DOM текстом, клавиатура телефона принимает его за слово рядом с курсором,
-  // на пробеле «исправляет» это слово и вставляет его после чипа ещё раз (а при стирании — снова и снова).
+  // Внутри чипа ровно ОДИН невидимый символ, а подпись рисует CSS (.chip-textarea .var-chip::before).
+  // Так чип для клавиатуры телефона — один символ: Backspace стирает его целиком, а не предыдущий текст
+  // (при пустом чипе клавиатура «не видит» его и стирает то, что стоит перед ним).
+  // Название при этом не лежит в DOM текстом: иначе клавиатура принимает его за слово рядом с курсором,
+  // на пробеле «исправляет» и вставляет заново после чипа.
+  chip.textContent = CHIP_MARK;
   chip.setAttribute('aria-label', name);
   return chip;
 }
@@ -227,19 +253,21 @@ function renderInto(el, value) {
   }
 }
 
+const stripMark = (t) => t.split(CHIP_MARK).join('');
+
 function serialize(el) {
   if (!el) return '';
   let out = '';
   for (const node of el.childNodes) {
     if (node.nodeType === Node.TEXT_NODE) {
-      out += node.textContent;
+      out += stripMark(node.textContent);
     } else if (node.nodeName === 'BR') {
       out += '\n';
     } else if (node.classList?.contains('var-chip')) {
       out += `{{${node.dataset.varName}}}`;
     } else {
       // some browsers wrap a fresh line in a <div> instead of using <br>
-      out += (out ? '\n' : '') + (node.textContent ?? '');
+      out += (out ? '\n' : '') + stripMark(node.textContent ?? '');
     }
   }
   return out;
