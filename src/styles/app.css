@@ -603,6 +603,16 @@
 }
 
 /* выходы блоков с ветвлением («да/нет», «готово/ошибка») */
+
+/* точки выходов выступают за край блока — overflow: hidden обрезал бы их пополам */
+.node.node--branches {
+  overflow: visible;
+}
+
+.node--branches .node__header {
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+}
+
 .node__branches {
   border-top: 1px solid var(--border);
   padding: 4px 0;

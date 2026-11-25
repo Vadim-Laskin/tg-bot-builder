@@ -110,7 +110,7 @@ export default function BlockNode({ id, type, data, selected }) {
   const hasOut = def.ports.out && !(isChain && chainMode(data) === 'goto');
 
   return (
-    <div className={`node${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
+    <div className={`node${def.ports.branches ? ' node--branches' : ''}${selected ? ' is-selected' : ''}`} style={{ '--node-color': def.color }}>
       {hasIn && <Handle type="target" position={Position.Left} />}
 
       <div className="node__header">
