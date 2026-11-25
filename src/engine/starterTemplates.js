@@ -244,6 +244,51 @@ function leads() {
   };
 }
 
+// ---------- 7. Модератор группы ----------
+function moderator() {
+  const nodes = [
+    node('watch', 'event', 0, 0, { triggerType: 'violation', value: '' }),
+    node('punish', 'moderation', 1, 0, { action: 'warn', deleteMessage: true, warnLimit: 3, limitAction: 'mute', duration: '60' }),
+    node('warned', 'message', 2, 0, { text: '⚠️ {{sender_name}}, причина: {{violation_reason}}. Итог: {{mod_result}}.' }),
+    note('hint', 3, 0, 'Добавьте бота в группу администратором с правами «Удаление сообщений» и «Блокировка участников». Для проверки ИИ задайте Groq API Key в «Ключи бота».')
+  ];
+  const edges = [edge('watch', 'punish'), edge('punish', 'warned', 'true')];
+
+  const commands = [
+    ['warn', 'warn', '⚠️ {{target_name}}: {{mod_result}}.'],
+    ['mute', 'mute', '🔇 {{target_name}}: {{mod_result}}'],
+    ['unmute', 'unmute', '🔊 {{target_name}}: {{mod_result}}.'],
+    ['kick', 'kick', '👋 {{target_name}}: {{mod_result}}.'],
+    ['ban', 'ban', '⛔ {{target_name}}: {{mod_result}}'],
+    ['unban', 'unban', '✅ {{target_name}}: {{mod_result}}.'],
+    ['unwarn', 'resetWarns', '✅ {{target_name}}: {{mod_result}}.']
+  ];
+  commands.forEach(([command, action, text], i) => {
+    const row = i + 1;
+    nodes.push(
+      node(`cmd_${command}`, 'event', 0, row, { triggerType: 'command', value: `/${command}` }),
+      node(`do_${command}`, 'moderation', 1, row, {
+        action,
+        target: 'reply',
+        duration: action === 'mute' || action === 'warn' ? '60' : '',
+        deleteMessage: false
+      }),
+      node(`ok_${command}`, 'message', 2, row - 0.25, { text }),
+      node(`err_${command}`, 'message', 2, row + 0.25, { text: '❗ {{mod_result}}' })
+    );
+    edges.push(
+      edge(`cmd_${command}`, `do_${command}`),
+      edge(`do_${command}`, `ok_${command}`, 'true'),
+      edge(`do_${command}`, `err_${command}`, 'false')
+    );
+  });
+
+  // блоки выше ROW/2 наезжали бы друг на друга — раздвигаем ряды
+  for (const n of nodes) n.position.y *= 1.6;
+
+  return { nodes, edges, variableDefs: [], tagDefs: [] };
+}
+
 // title/icon/gradient — для карточек мастера
 export const STARTER_TEMPLATES = [
   { id: 'menu', title: 'Меню с кнопками', icon: 'bars', gradient: 'linear-gradient(135deg,#4f9bff,#6b7bff)', build: menu },
@@ -251,5 +296,6 @@ export const STARTER_TEMPLATES = [
   { id: 'event', title: 'Запись на мероприятие', icon: 'calendar-days', gradient: 'linear-gradient(135deg,#ff5f7a,#ff8f8f)', build: event },
   { id: 'schedule', title: 'Рассылка по расписанию', icon: 'clock', gradient: 'linear-gradient(135deg,#ff8a3d,#ffb347)', build: schedule },
   { id: 'quiz', title: 'Тест с баллами', icon: 'graduation-cap', gradient: 'linear-gradient(135deg,#10c28a,#34d9a4)', build: quiz },
-  { id: 'leads', title: 'Сбор заявок', icon: 'folder-open', gradient: 'linear-gradient(135deg,#18c5e8,#62e3f3)', build: leads }
+  { id: 'leads', title: 'Сбор заявок', icon: 'folder-open', gradient: 'linear-gradient(135deg,#18c5e8,#62e3f3)', build: leads },
+  { id: 'moderator', title: 'Модератор группы', icon: 'shield-halved', gradient: 'linear-gradient(135deg,#dc2626,#f87171)', build: moderator }
 ];

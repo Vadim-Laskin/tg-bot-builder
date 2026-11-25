@@ -464,3 +464,36 @@ $$;
 
 revoke all on function public.rename_bot_state_key(uuid, text, text, text) from public;
 grant execute on function public.rename_bot_state_key(uuid, text, text, text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Модерация: счётчик предупреждений участников (блок «Модерация»).
+-- Пишет только вебхук (service role); владелец бота может читать.
+create table if not exists public.moderation_warns (
+  bot_id uuid not null references public.bots(id) on delete cascade,
+  chat_id text not null,
+  user_id text not null,
+  count integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (bot_id, chat_id, user_id)
+);
+
+alter table public.moderation_warns enable row level security;
+
+drop policy if exists "moderation_warns: owner can read" on public.moderation_warns;
+create policy "moderation_warns: owner can read" on public.moderation_warns
+  for select using (
+    exists (select 1 from public.bots b where b.id = moderation_warns.bot_id and b.user_id = auth.uid())
+  );
+
+-- атомарное +1, чтобы два сообщения подряд не потеряли предупреждение.
+-- Не security definer: без service role запись всё равно запрещена RLS.
+create or replace function public.add_moderation_warn(p_bot_id uuid, p_chat_id text, p_user_id text)
+returns integer
+language sql set search_path = public as $$
+  insert into public.moderation_warns as w (bot_id, chat_id, user_id, count)
+  values (p_bot_id, p_chat_id, p_user_id, 1)
+  on conflict (bot_id, chat_id, user_id)
+  do update set count = w.count + 1, updated_at = now()
+  returning count;
+$$;
+

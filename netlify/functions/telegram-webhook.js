@@ -14,6 +14,8 @@ import { parseCallbackData } from '../../src/engine/buttonId.js';
 import { formatMessageText } from '../../src/engine/formatText.js';
 import { groupButtonsIntoRows } from '../../src/engine/buttonLayout.js';
 import { buildCommonApi } from '../lib/commonApi.js';
+import { buildTelegramModeration } from '../lib/telegramModeration.js';
+import { findViolation, safeName } from '../../src/engine/moderation.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -53,7 +55,8 @@ export const handler = async (event) => {
 
   // channel posts arrive as their own update type, not as `message` —
   // easy to miss, since everything else (groups, private chats) uses `message`
-  const message = update.message ?? update.callback_query?.message ?? update.channel_post ?? update.edited_channel_post;
+  const message =
+    update.message ?? update.callback_query?.message ?? update.channel_post ?? update.edited_channel_post ?? update.edited_message;
   const chatId = message?.chat?.id;
   if (!chatId) return { statusCode: 200, body: 'no chat in update' };
 
@@ -80,13 +83,14 @@ export const handler = async (event) => {
     }
   }
 
-  const text = update.message?.text ?? update.channel_post?.text ?? '';
+  const text =
+    update.message?.text ?? update.channel_post?.text ?? update.edited_message?.text ?? update.edited_message?.caption ?? '';
   const callbackData = update.callback_query?.data;
 
   if (callbackData) {
     const label = findPressedButtonText(update.callback_query) || '(кнопка)';
     logMessage(botId, chatId, 'in', `▸ ${label}`);
-  } else if (text) {
+  } else if (text && !update.edited_message) {
     logMessage(botId, chatId, 'in', text);
   }
 
@@ -97,10 +101,28 @@ export const handler = async (event) => {
     .eq('chat_id', String(chatId))
     .maybeSingle();
 
+  const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
+  if (!mainFlow) return { statusCode: 200, body: 'bot has no flow yet' };
+
+  const api = buildTelegramApi({
+    telegramToken: bot.telegram_token,
+    groqApiKey: bot.groq_api_key,
+    flows: bot.flows,
+    botId
+  });
+
+  // Модерация: каждое сообщение (и его правку) от участника группы проверяем раньше
+  // всего остального — иначе нарушение можно было бы спрятать в команду или ответ боту.
+  const violation = await checkViolation(update, mainFlow, api);
+  // правки сообщений нужны только модератору, сценарий они не запускают
+  if (update.edited_message && !violation) return { statusCode: 200, body: 'edited message' };
+
   let trigger;
   let quickReplyText; // set when the pressed button is an AI-generated quick reply
   let capturedReply; // set when this message fills a "wait for reply" capture
-  if (callbackData) {
+  if (violation) {
+    trigger = { type: 'violation', nodeId: violation.node.id };
+  } else if (callbackData) {
     // buttons made in the editor encode which block + which button they
     // are, so a press resumes the flow from exactly that point — there's
     // no separate "Событие: кнопка" matching anymore
@@ -134,7 +156,12 @@ export const handler = async (event) => {
     capturedReply = cap;
     trigger = { type: 'resume', nodeId: cap.nodeId, handle: 'default' };
   } else if (text.startsWith('/')) {
-    trigger = { type: 'command', value: text.split(' ')[0] };
+    // в группах команды приходят как «/ban@имя_бота»; чужие команды не наши
+    const [command, addressee] = text.split(/\s+/)[0].split('@');
+    if (addressee && !(await isOwnUsername(bot.telegram_token, addressee))) {
+      return { statusCode: 200, body: 'command for another bot' };
+    }
+    trigger = { type: 'command', value: command };
   } else if (text && stateRow?.pending_keyboard?.[text]) {
     // a reply-keyboard button (под полем ввода) — Telegram gives no
     // metadata back for these, just the button's own text, so matching
@@ -160,22 +187,30 @@ export const handler = async (event) => {
     // an "edit previous message" block knows what to edit. Absent for
     // /start or plain-text triggers, since there's nothing to edit yet.
     sourceMessageId: update.callback_query?.message?.message_id,
+    ...describeSender(update, message),
+    // нарушение не должно сбрасывать ожидание ответа от другого участника
+    pendingCapture: violation ? stateRow?.pending_capture ?? undefined : undefined,
     // the user's own incoming message that triggered this run (unset for
     // button presses, resumes, or channel posts with no author message) —
     // used by Действие → "Удалить сообщение пользователя"
-    incomingMessageId: update.message?.message_id,
+    incomingMessageId: (update.message ?? update.edited_message)?.message_id,
     // 'private' | 'group' | 'supergroup' | 'channel' — used by the
     // "источник сообщения" condition operator
     chatType: message?.chat?.type
   };
 
+  context.builtins = {
+    sender_name: safeName(context.sender?.name),
+    sender_id: context.sender?.id ?? '',
+    command_args: trigger.type === 'command' ? text.replace(/^\S+\s*/, '') : '',
+    violation_reason: violation?.reason ?? ''
+  };
+  if (violation) context.lastMessage = update.message?.text ?? update.edited_message?.text ?? update.message?.caption ?? '';
+
   if (capturedReply) {
     const bag = capturedReply.scope === 'global' ? context.globalVariables : context.variables;
     bag[capturedReply.variableName] = text;
   }
-
-  const mainFlow = bot.flows.find((f) => f.is_main) ?? bot.flows[0];
-  if (!mainFlow) return { statusCode: 200, body: 'bot has no flow yet' };
 
   // a button resume needs the specific flow that node lives in — it might
   // be inside a chain (scenario), not the main flow
@@ -183,13 +218,6 @@ export const handler = async (event) => {
     trigger.type === 'resume'
       ? bot.flows.find((f) => f.graph?.nodes?.some((n) => n.id === trigger.nodeId)) ?? mainFlow
       : mainFlow;
-
-  const api = buildTelegramApi({
-    telegramToken: bot.telegram_token,
-    groqApiKey: bot.groq_api_key,
-    flows: bot.flows,
-    botId
-  });
 
   try {
     await runFlow({
@@ -231,6 +259,68 @@ export const handler = async (event) => {
 
   return { statusCode: 200, body: 'ok' };
 };
+
+// Проверка сообщения участника событиями «Проверка сообщений» основного сценария.
+async function checkViolation(update, mainFlow, api) {
+  const msg = update.message ?? update.edited_message;
+  if (!msg || (msg.chat.type !== 'group' && msg.chat.type !== 'supergroup')) return null;
+  // анонимные администраторы и посты привязанного канала — не участники
+  if (msg.is_automatic_forward || msg.sender_chat?.id === msg.chat.id) return null;
+  if (msg.from?.is_bot && !msg.sender_chat) return null;
+
+  try {
+    const found = await findViolation({
+      graph: mainFlow.graph,
+      text: msg.text ?? msg.caption ?? '',
+      entities: msg.entities ?? msg.caption_entities,
+      api
+    });
+    if (!found) return null;
+    // права спрашиваем только когда нарушение найдено — чтобы не дёргать Telegram на каждое сообщение
+    const ignoreAdmins = found.node.data.ignoreAdmins ?? true;
+    if (ignoreAdmins && !msg.sender_chat && (await api.moderation.isAdmin(msg.chat.id, msg.from.id))) return null;
+    return found;
+  } catch (e) {
+    console.error('moderation check failed:', e);
+    return null;
+  }
+}
+
+// Кто запустил сценарий и на чьё сообщение он ответил.
+function describeSender(update, message) {
+  const person = (msg, from) => {
+    if (msg?.sender_chat && msg.sender_chat.id !== msg.chat.id) {
+      return { id: msg.sender_chat.id, name: msg.sender_chat.title, isChat: true };
+    }
+    if (msg?.sender_chat || !from) return undefined;
+    return { id: from.id, name: [from.first_name, from.last_name].filter(Boolean).join(' ') };
+  };
+
+  // у нажатой кнопки message — это сообщение бота, а действует нажавший
+  if (update.callback_query) return { sender: person(null, update.callback_query.from) };
+  if (!update.message && !update.edited_message) return {};
+
+  const reply = message.reply_to_message;
+  return {
+    sender: person(message, message.from),
+    senderIsAnonymousAdmin: message.sender_chat?.id === message.chat.id,
+    // в темах форума «ответом» числится и служебное сообщение о создании темы
+    replyTo:
+      reply && !reply.forum_topic_created
+        ? { messageId: reply.message_id, sender: person(reply, reply.from) }
+        : undefined
+  };
+}
+
+async function isOwnUsername(telegramToken, username) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${telegramToken}/getMe`);
+    const data = await res.json();
+    return !data.ok || data.result.username?.toLowerCase() === username.toLowerCase();
+  } catch {
+    return true;
+  }
+}
 
 async function answerCallbackQuery(telegramToken, callbackQueryId) {
   await fetch(`https://api.telegram.org/bot${telegramToken}/answerCallbackQuery`, {
@@ -350,6 +440,8 @@ function buildTelegramApi({ telegramToken, groqApiKey, flows, botId }) {
     async sendChatAction(chatId, action) {
       await tg('sendChatAction', { chat_id: chatId, action: action || 'typing' });
     },
+
+    moderation: buildTelegramModeration({ tg, supabase: supabaseAdmin, botId }),
 
     ...buildCommonApi({ groqApiKey, flows })
   };

@@ -9,6 +9,7 @@ import { interpolate } from './flowEngine.js';
 import { getButtonId, buildCallbackData } from './buttonId.js';
 import { extractUrls, fetchUrlContent } from './webContent.js';
 import { chainMode } from './chains.js';
+import { runModeration } from './moderationHandler.js';
 
 const MAX_CHAIN_DEPTH = 20; // переходы A → B → A → … не должны крутиться вечно
 
@@ -16,6 +17,8 @@ const handlers = {
   note: async () => ({ next: 'default' }), // visual only, no-op at runtime
 
   event: async () => ({ next: 'default' }), // entry point, nothing to execute itself
+
+  moderation: runModeration,
 
   message: async (node, context, api) => {
     const text = interpolate(node.data.text, context);
@@ -135,12 +138,19 @@ const handlers = {
     return { next: 'default' };
   },
 
-  condition: async (node, context) => {
+  condition: async (node, context, api) => {
     const { operator, value, variableName, tagName, scope } = node.data;
 
     if (operator === 'chatType') {
       const actual = context.chatType === 'private' ? 'private' : 'group'; // supergroup counts as group
       return { next: actual === (value || 'private') ? 'true' : 'false' };
+    }
+
+    if (operator === 'senderIsAdmin') {
+      const admin =
+        context.senderIsAnonymousAdmin ||
+        Boolean(context.sender?.id && (await api.moderation?.isAdmin(context.chatId, context.sender.id)));
+      return { next: admin ? 'true' : 'false' };
     }
 
     if (operator === 'hasTag' || operator === 'notHasTag') {

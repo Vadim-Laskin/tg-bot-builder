@@ -50,7 +50,7 @@ export async function runFlow({ graph, trigger, context, api }) {
   }
 
   const entryNodes = graph.nodes.filter(
-    (n) => n.type === 'event' && matchesTrigger(n.data, trigger)
+    (n) => n.type === 'event' && matchesTrigger(n, trigger)
   );
 
   if (entryNodes.length === 0) {
@@ -64,9 +64,12 @@ export async function runFlow({ graph, trigger, context, api }) {
   return context;
 }
 
-function matchesTrigger(eventData, trigger) {
+function matchesTrigger(node, trigger) {
+  const eventData = node.data;
   if (eventData.triggerType !== trigger.type) return false;
   if (trigger.type === 'schedule') return true;
+  // нарушение уже проверено (moderation.js findViolation) — запускаем именно то событие
+  if (trigger.type === 'violation') return node.id === trigger.nodeId;
   if (trigger.type === 'text') return true; // plain text events pass through; real
   // deployments should let a "text" event carry an optional regex in eventData.value
   if (trigger.type === 'command') return normalizeCommand(eventData.value) === normalizeCommand(trigger.value);
@@ -113,6 +116,8 @@ export function interpolate(template, context) {
     if (key === 'last_message') return context.lastMessage ?? '';
     if (context.variables && key in context.variables) return context.variables[key];
     if (context.globalVariables && key in context.globalVariables) return context.globalVariables[key];
+    // сведения о текущем запуске: {{sender_name}}, {{target_name}}, {{mod_result}} и т.п.
+    if (context.builtins && key in context.builtins) return context.builtins[key];
     return '';
   });
 }

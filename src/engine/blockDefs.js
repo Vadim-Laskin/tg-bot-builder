@@ -23,12 +23,12 @@ export const BLOCK_DEFS = {
   event: {
     type: 'event',
     label: 'Событие',
-    description: 'Точка входа: команда, текст, нажатие кнопки или расписание.',
+    description: 'Точка входа: команда, текст, проверка сообщений на нарушения или расписание.',
     category: 'logic',
     color: 'var(--wire-event)',
     ports: { in: false, out: true },
     defaultData: {
-      triggerType: 'command', // command | text | schedule
+      triggerType: 'command', // command | text | violation | schedule
       value: '/start'
     }
   },
@@ -70,6 +70,30 @@ export const BLOCK_DEFS = {
       text: 'Привет! 👋',
       buttonsLayout: 'inline', // forced to 'inline' in the UI when targetType is 'group'
       buttons: [] // same shape as "Сообщение" — kind: 'callback' buttons work normally when pressed in the target chat
+    }
+  },
+
+  moderation: {
+    type: 'moderation',
+    label: 'Модерация',
+    description: 'Предупреждение, мут, бан, удаление из группы или канала, снятие наказаний (только Telegram).',
+    category: 'logic',
+    color: 'var(--wire-moderation)',
+    ports: { in: true, out: true, branches: ['true', 'false'] },
+    branchLabels: ['готово', 'ошибка'],
+    defaultData: {
+      action: 'mute', // warn | resetWarns | mute | unmute | kick | ban | unban | delete
+      target: 'sender', // sender — автор сообщения | reply — тот, на чьё сообщение ответили | manual — ID
+      targetManual: '',
+      chatSource: 'current', // current | chosen
+      targetChatId: '',
+      targetLabel: '',
+      duration: '60', // срок мута/бана: «30», «2ч», «1д»; пусто — навсегда
+      durationFromCommand: true, // «/mute 2ч» важнее поля duration
+      deleteMessage: false,
+      warnLimit: 3,
+      limitAction: 'mute', // mute | kick | ban
+      requireAdmin: true
     }
   },
 
@@ -121,7 +145,7 @@ export const BLOCK_DEFS = {
       tagId: '',
       tagName: '',
       scope: 'personal',
-      operator: 'equals', // equals | notEquals | contains | greaterThan | lessThan | hasTag | notHasTag | chatType
+      operator: 'equals', // equals | notEquals | contains | greaterThan | lessThan | hasTag | notHasTag | chatType | senderIsAdmin
       value: '' // comparison target — also holds 'private' | 'group' when operator is chatType
     }
   },

@@ -32,6 +32,37 @@ export function buildCommonApi({ groqApiKey, flows }) {
       }
     },
 
+    // проверка сообщения модератором: null — ИИ недоступен (нет ключа, лимит, таймаут)
+    async classifyMessage({ model, systemPrompt, userPrompt }) {
+      if (!groqApiKey) return null;
+      const resolved = resolveGroqModel(model);
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+          signal: AbortSignal.timeout(6000),
+          body: JSON.stringify({
+            model: resolved,
+            temperature: 0,
+            ...(resolved.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low' } : {}),
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ]
+          })
+        });
+        const data = await res.json();
+        if (data.error) {
+          console.error('groq moderation error:', data.error.message);
+          return null;
+        }
+        return data.choices?.[0]?.message?.content ?? null;
+      } catch (e) {
+        console.error('groq moderation failed:', e.message);
+        return null;
+      }
+    },
+
     async httpRequest({ method, url, body }) {
       if (!url) return;
       try {

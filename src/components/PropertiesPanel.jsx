@@ -8,6 +8,7 @@ import ChipTextarea from './ChipTextarea.jsx';
 import ButtonEditor from './ButtonEditor.jsx';
 import NodeButtons from './nodes/NodeButtons.jsx';
 import { chainMode } from '../engine/chains.js';
+import ModerationFields, { ViolationFields } from './ModerationFields.jsx';
 
 export default function PropertiesPanel({
   node,
@@ -77,10 +78,12 @@ export default function PropertiesPanel({
             >
               <option value="command">Команда (/start)</option>
               <option value="text">Любой текст</option>
+              <option value="violation">Проверка сообщений (модерация)</option>
               <option value="schedule">По расписанию</option>
             </select>
           </Field>
-          {data.triggerType !== 'schedule' && (
+          {data.triggerType === 'violation' && <ViolationFields data={data} set={set} />}
+          {data.triggerType !== 'schedule' && data.triggerType !== 'violation' && (
             <Field label="Значение">
               <input className="input" value={data.value} onChange={(e) => set({ value: e.target.value })} />
             </Field>
@@ -171,6 +174,10 @@ export default function PropertiesPanel({
           )}
           <ButtonsEditor nodeId={node.id} buttons={data.buttons} layout={data.buttonsLayout || 'inline'} />
         </>
+      )}
+
+      {node.type === 'moderation' && (
+        <ModerationFields data={data} set={set} knownChats={knownChats} />
       )}
 
       {node.type === 'aiMessage' && (
@@ -516,6 +523,7 @@ export default function PropertiesPanel({
               <option value="hasTag">есть тег</option>
               <option value="notHasTag">нет тега</option>
               <option value="chatType">источник сообщения</option>
+              <option value="senderIsAdmin">отправитель — администратор</option>
             </select>
           </Field>
 
@@ -544,6 +552,10 @@ export default function PropertiesPanel({
                 </p>
               )}
             </>
+          ) : data.operator === 'senderIsAdmin' ? (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 14px', lineHeight: 1.4 }}>
+              «Да» — если сценарий запустил владелец или администратор этой группы.
+            </p>
           ) : data.operator === 'chatType' ? (
             <Field label="Сообщение пришло из">
               <select className="select" value={data.value || 'private'} onChange={(e) => set({ value: e.target.value })}>

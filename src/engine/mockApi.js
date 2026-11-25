@@ -8,6 +8,41 @@ import { findChainStart } from './chains.js';
 
 let previewMessageSeq = 0;
 
+// В тесте «вы» (команды) — администратор, остальные — обычные участники.
+export const PREVIEW_ADMIN = { id: '100000', name: 'Вы (админ)' };
+export const PREVIEW_MEMBER = { id: '200000', name: 'Участник' };
+const previewWarns = new Map();
+
+function createMockModeration(onLog, onDeleteMessage) {
+  const done = (text) => {
+    onLog?.(`${text} (симуляция)`);
+    return Promise.resolve({ ok: true });
+  };
+  return {
+    isAdmin: async (chatId, userId) => String(userId) === PREVIEW_ADMIN.id,
+    async deleteMessage(chatId, messageId) {
+      onDeleteMessage?.(messageId);
+      return done('сообщение удалено');
+    },
+    mute: (chatId, userId) => done(`мут пользователю ${userId}`),
+    unmute: (chatId, userId) => done(`мут снят с пользователя ${userId}`),
+    ban: (chatId, userId) => done(`бан пользователю ${userId}`),
+    unban: (chatId, userId) => done(`бан снят с пользователя ${userId}`),
+    kick: (chatId, userId) => done(`пользователь ${userId} удалён из чата`),
+    async addWarn(chatId, userId) {
+      const count = (previewWarns.get(userId) ?? 0) + 1;
+      previewWarns.set(userId, count);
+      return count;
+    },
+    async resetWarns(chatId, userId) {
+      previewWarns.delete(userId);
+      return true;
+    }
+  };
+}
+
+export const resetPreviewWarns = () => previewWarns.clear();
+
 export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog, flows = [], ownChatId = 'preview' } = {}) {
   return {
     async sendMessage(chatId, { text, buttons }) {
@@ -40,6 +75,7 @@ export function createMockApi({ onMessage, onEditMessage, onDeleteMessage, onLog
     async sendChatAction() {
       onLog?.('… печатает');
     },
+    moderation: createMockModeration(onLog, onDeleteMessage),
     async resolveChain(ref) {
       return findChainStart(flows, ref);
     },

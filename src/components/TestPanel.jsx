@@ -1,7 +1,8 @@
 import Icon from './Icon.jsx';
 import { useRef, useState } from 'react';
 import { runFlow } from '../engine/flowEngine.js';
-import { createMockApi } from '../engine/mockApi.js';
+import { createMockApi, resetPreviewWarns, PREVIEW_ADMIN, PREVIEW_MEMBER } from '../engine/mockApi.js';
+import { findViolation, safeName } from '../engine/moderation.js';
 import { parseCallbackData } from '../engine/buttonId.js';
 import { formatMessageText } from '../engine/formatText.js';
 import { groupButtonsIntoRows } from '../engine/buttonLayout.js';
@@ -67,9 +68,28 @@ export default function TestPanel({ graph, allFlows, onClose }) {
     contextRef.current.sourceMessageId = undefined; // plain text/command — no message to edit
     contextRef.current.incomingMessageId = userItemId; // lets "Удалить сообщение пользователя" find this bubble
 
+    // в «Группе» сначала проверяем сообщение событиями модерации — как настоящий бот.
+    // ИИ в тесте не вызывается: ловятся только мат по словарю и ссылки.
+    const violation =
+      contextRef.current.chatType === 'group'
+        ? await findViolation({ graph, text, api: makeApi() })
+        : null;
+    const sender = violation ? PREVIEW_MEMBER : PREVIEW_ADMIN;
+    contextRef.current.sender = sender;
+    contextRef.current.replyTo = { sender: PREVIEW_MEMBER };
+    contextRef.current.builtins = {
+      sender_name: safeName(sender.name),
+      sender_id: sender.id,
+      command_args: text.startsWith('/') ? text.replace(/^\S+\s*/, '') : '',
+      violation_reason: violation?.reason ?? ''
+    };
+
     let trigger;
     const capture = contextRef.current.pendingCapture;
-    if (capture) {
+    if (violation) {
+      push({ kind: 'log', text: `Найдено нарушение: ${violation.reason}` });
+      trigger = { type: 'violation', nodeId: violation.node.id };
+    } else if (capture) {
       // "Ждать ответ пользователя" on a Сообщение block — whatever was
       // typed fills that variable, even if it looks like a command
       const bag = capture.scope === 'global' ? contextRef.current.globalVariables : contextRef.current.variables;
@@ -77,7 +97,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
       contextRef.current.pendingCapture = null;
       trigger = { type: 'resume', nodeId: capture.nodeId, handle: 'default' };
     } else if (text.startsWith('/')) {
-      trigger = { type: 'command', value: text };
+      trigger = { type: 'command', value: text.split(/\s+/)[0] };
     } else {
       const pending = contextRef.current.pendingKeyboard?.[text];
       trigger = pending
@@ -100,6 +120,9 @@ export default function TestPanel({ graph, allFlows, onClose }) {
 
     push({ kind: 'user', text: `▸ ${button.text}` });
     contextRef.current.incomingMessageId = undefined; // a button press isn't a new user message to delete
+    contextRef.current.sender = PREVIEW_ADMIN;
+    contextRef.current.replyTo = undefined;
+    contextRef.current.builtins = { sender_name: PREVIEW_ADMIN.name, sender_id: PREVIEW_ADMIN.id };
 
     if (button.kind === 'keyboard') {
       const target = contextRef.current.pendingKeyboard?.[button.text];
@@ -149,6 +172,7 @@ export default function TestPanel({ graph, allFlows, onClose }) {
   };
 
   const reset = () => {
+    resetPreviewWarns();
     contextRef.current = {
       variables: {},
       tags: [],

@@ -4,13 +4,25 @@ import { BLOCK_DEFS } from '../../engine/blockDefs.js';
 import ChipText from '../ChipText.jsx';
 import NodeButtons from './NodeButtons.jsx';
 import { chainMode } from '../../engine/chains.js';
+import { eventChecks, VIOLATION_LABELS } from '../../engine/moderation.js';
+import { MODERATION_ACTIONS } from '../ModerationFields.jsx';
 
 function summarize(type, data) {
   switch (type) {
     case 'note':
       return data.text || '';
     case 'event':
+      if (data.triggerType === 'violation') {
+        const checks = eventChecks(data);
+        const list = Object.keys(VIOLATION_LABELS).filter((k) => checks[k]).map((k) => VIOLATION_LABELS[k]);
+        return `проверка сообщений: ${list.join(', ') || 'ничего не выбрано'}`;
+      }
       return `${labelForTrigger(data.triggerType)}: ${data.value || '—'}`;
+    case 'moderation': {
+      const who =
+        data.target === 'reply' ? 'автора сообщения, на которое ответили' : data.target === 'manual' ? data.targetManual || '—' : 'отправителя';
+      return `${MODERATION_ACTIONS[data.action] ?? data.action}\nкого: ${who}`;
+    }
     case 'message':
       return data.text || '';
     case 'sendToChat': {
@@ -36,6 +48,7 @@ function summarize(type, data) {
       if (data.operator === 'chatType') {
         return `источник: ${data.value === 'group' ? 'группа' : 'личка'}`;
       }
+      if (data.operator === 'senderIsAdmin') return 'отправитель — администратор';
       return `${data.variableName || '—'} ${symbolForOperator(data.operator)} ${data.value || '—'}`;
     case 'chain':
       return chainMode(data) === 'new'
@@ -128,8 +141,8 @@ export default function BlockNode({ id, type, data, selected }) {
         (def.ports.branches ? (
           <>
             <div className="node__branch-labels">
-              <span>да ↓</span>
-              <span>нет ↓</span>
+              <span>{def.branchLabels?.[0] ?? 'да'} ↓</span>
+              <span>{def.branchLabels?.[1] ?? 'нет'} ↓</span>
             </div>
             <Handle type="source" position={Position.Right} id="true" style={{ top: '38%' }} />
             <Handle type="source" position={Position.Right} id="false" style={{ top: '68%' }} />
