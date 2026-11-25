@@ -602,13 +602,26 @@
   font-style: italic;
 }
 
-.node__branch-labels {
+/* выходы блоков с ветвлением («да/нет», «готово/ошибка») */
+.node__branches {
+  border-top: 1px solid var(--border);
+  padding: 4px 0;
+}
+
+.node__branch {
+  position: relative; /* точка выхода центрируется по своей строке, а не по всему блоку */
   display: flex;
-  justify-content: space-between;
-  padding: 0 10px 8px;
-  font-size: 10px;
-  color: var(--text-faint);
+  justify-content: flex-end;
+  padding: 4px 16px 4px 10px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-dim);
   font-family: var(--font-mono);
+}
+
+/* иначе увеличение при наведении сбивает центрирование и точка «прыгает» */
+.node__branch .react-flow__handle:hover {
+  transform: translateY(-50%) scale(1.25);
 }
 
 /* ---------- per-button rows on a Сообщение block ---------- */

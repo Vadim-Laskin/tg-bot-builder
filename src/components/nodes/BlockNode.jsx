@@ -139,14 +139,15 @@ export default function BlockNode({ id, type, data, selected }) {
       {type !== 'message' &&
         type !== 'sendToChat' &&
         (def.ports.branches ? (
-          <>
-            <div className="node__branch-labels">
-              <span>{def.branchLabels?.[0] ?? 'да'} ↓</span>
-              <span>{def.branchLabels?.[1] ?? 'нет'} ↓</span>
-            </div>
-            <Handle type="source" position={Position.Right} id="true" style={{ top: '38%' }} />
-            <Handle type="source" position={Position.Right} id="false" style={{ top: '68%' }} />
-          </>
+          // каждый выход — своя строка: подпись и точка всегда на одной линии
+          <div className="node__branches">
+            {def.ports.branches.map((branch, i) => (
+              <div className="node__branch" key={branch}>
+                <span>{def.branchLabels?.[i] ?? ['да', 'нет'][i]}</span>
+                <Handle type="source" position={Position.Right} id={branch} />
+              </div>
+            ))}
+          </div>
         ) : (
           hasOut && <Handle type="source" position={Position.Right} />
         ))}
